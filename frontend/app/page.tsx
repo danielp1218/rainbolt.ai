@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { Navbar } from "@/components/ui/navbar";
 import { Button } from "@/components/ui/button";
 import EarthScene from "@/components/ui/globe";
+import { ChatLauncher } from "@/components/ChatLauncher";
+import { ChatPanel } from "@/components/ChatPanel";
 
 import "./glow.css";
 
@@ -47,6 +49,12 @@ export default function Home() {
       {/* Navigation */}
       <Navbar currentSection={currentSection} />
 
+      {/* Chat Overlay Layer - Above everything, pointer-events managed per component */}
+      <div className="fixed inset-0 z-[100] pointer-events-none">
+        <ChatLauncher />
+        <ChatPanel />
+      </div>
+
       {/* Hero Section with Earth */}
       <section data-section-id="0" className="relative h-screen snap-always snap-start">
         <div className="absolute inset-0 pointer-events-none" />
@@ -65,8 +73,11 @@ export default function Home() {
                 Transforming ideas into intelligent solutions through cutting-edge artificial intelligence and machine learning.
               </p>
               <div className="mt-8 flex gap-4">
-                <Button size="lg" className="bg-white text-black hover:bg-white/90">
-                  Get Started
+                <Button size="lg" className="bg-white text-black hover:bg-white/90" asChild>
+                  <a href="/chat">Try Chat Interface</a>
+                </Button>
+                <Button size="lg" variant="outline" className="border-white/20 text-white hover:bg-white/10">
+                  Learn More
                 </Button>
               </div>
             </div>
