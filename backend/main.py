@@ -160,11 +160,28 @@ async def websocket_chat(websocket: WebSocket, session_id: str):
                         image
                     )
                     
+                    response = ""
                     for chunk in response_stream:
                         chunk_text = chunk.content
+                        response += chunk_text
+
+                    await manager.send_message(session_id, {
+                        "type": "chat_response_chunk",
+                        "text": response
+                    })
+
+                    # Handle recalculation trigger
+                    if "__output__coordinates__" in response:
+                        response = response.replace("__output__coordinates__", "")
                         await manager.send_message(session_id, {
-                            "type": "chat_response_chunk",
-                            "text": chunk_text
+                            "type": "chat_response_coordinates", 
+                            "text": "Recalculating coordinates..."
+                        })
+                        # Recalculate coordinates
+                        new_coords = estimate_coordinates(response)
+                        await manager.send_message(session_id, {
+                            "type": "coordinates",
+                            "text": new_coords
                         })
                     
                     await manager.send_message(session_id, {
