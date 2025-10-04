@@ -2,7 +2,6 @@
 
 import { useEffect, useRef } from "react";
 import * as THREE from "three";
-import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import getStarfield from "../../utils/getStarfield";
 import { latLongToVector3 } from "../../utils/coordinates";
 
@@ -28,22 +27,19 @@ export default function SimpleGlobe({ markers = [] }: SimpleGlobeProps) {
       0.1,
       1000
     );
-    camera.position.set(7, 0, 4); // Position camera to view globe
+    camera.position.set(0, 0, 7); // Position camera to center the globe
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
     renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // Cap pixel ratio for performance
     if (mountRef.current) {
       mountRef.current.appendChild(renderer.domElement);
     }
 
-    const orbitCtrl = new OrbitControls(camera, renderer.domElement);
-    orbitCtrl.enableDamping = true;
-    orbitCtrl.target.set(-7.7, 0, 0);
-
-    orbitCtrl.enableZoom = false; // Disable zooming
-    orbitCtrl.minDistance = 4; // Set minimum distance
-    orbitCtrl.maxDistance = 4; // Set maximum distance to same as minimum to prevent zoom
+    // Manual rotation variables
+    let isDragging = false;
+    let previousMousePosition = { x: 0, y: 0 };
+    const rotationSpeed = 0.005;
 
     const raycaster = new THREE.Raycaster();
     const pointerPos = new THREE.Vector2();
@@ -57,18 +53,21 @@ export default function SimpleGlobe({ markers = [] }: SimpleGlobeProps) {
     const alphaMap = textureLoader.load("/02_earthspec1k.jpg");
 
     const globeGroup = new THREE.Group();
-    globeGroup.position.x = -6;
+    globeGroup.position.x = 0;
     globeGroup.position.y = 0;
-    globeGroup.position.z = -0.5;   
+    globeGroup.position.z = 0;
+    // Set rotation order to keep Y-axis vertical
+    globeGroup.rotation.order = 'XYZ';
     scene.add(globeGroup);
+    camera.lookAt(2, 0, 0);
 
-    // Simple globe geometry and material
-    const geo = new THREE.IcosahedronGeometry(1, 16);
+    // Simple globe geometry and material - optimized
+    const geo = new THREE.IcosahedronGeometry(1, 12); // Reduced from 16 to 12
     const mat = new THREE.MeshStandardMaterial({
       color: 0x0099ff,
       wireframe: true,
       displacementMap: elevMap,
-      displacementScale: 0.05,
+      displacementScale: 0.04, // Reduced slightly
       transparent: true,
       opacity: 0.8,
       metalness: 0.3,
@@ -77,8 +76,8 @@ export default function SimpleGlobe({ markers = [] }: SimpleGlobeProps) {
     const globe = new THREE.Mesh(geo, mat);
     globeGroup.add(globe);
 
-    // Create interactive points layer
-    const detail = 120;
+    // Create interactive points layer - optimized
+    const detail = 50; // Reduced from 80 for better performance
     const pointsGeo = new THREE.IcosahedronGeometry(1.01, detail); // Slightly larger radius to avoid z-fighting
 
     // Shaders for interactive points
@@ -136,7 +135,7 @@ export default function SimpleGlobe({ markers = [] }: SimpleGlobeProps) {
     `;
 
     const uniforms = {
-      size: { type: "f", value: 8.0 },
+      size: { type: "f", value: 5.0 }, // Reduced point size for performance
       colorTexture: { type: "t", value: colorMap },
       otherTexture: { type: "t", value: otherMap },
       elevTexture: { type: "t", value: elevMap },
@@ -150,7 +149,8 @@ export default function SimpleGlobe({ markers = [] }: SimpleGlobeProps) {
       fragmentShader,
       transparent: true,
       depthWrite: false,
-      depthTest: false,
+      depthTest: true,
+      blending: THREE.NormalBlending, // Optimize blending
     });
 
     const points = new THREE.Points(pointsGeo, pointsMat);
@@ -159,10 +159,12 @@ export default function SimpleGlobe({ markers = [] }: SimpleGlobeProps) {
     // Add markers if provided
     if (markers.length > 0) {
       const markerGroup = new THREE.Group();
+      // Use shared geometry for all markers for better performance
+      const markerGeometry = new THREE.SphereGeometry(0.02, 6, 6); // Further reduced segments for performance
+      
       markers.forEach((marker) => {
         const [x, y, z] = latLongToVector3(marker.lat, marker.long, 1.02);
         
-        const markerGeometry = new THREE.SphereGeometry(0.02, 16, 16);
         const markerMaterial = new THREE.MeshBasicMaterial({
           color: marker.color || '#ff0000',
           transparent: true,
@@ -189,12 +191,16 @@ export default function SimpleGlobe({ markers = [] }: SimpleGlobeProps) {
     scene.add(ambientLight);
 
     // Add stars background
-    const stars = getStarfield({ numStars: 4500, sprite: starSprite });
+    const stars = getStarfield({ numStars: 1500, sprite: starSprite }); // Reduced for performance
     scene.add(stars);
 
+
+    let frameCount = 0;
     function handleRaycast() {
       raycaster.setFromCamera(pointerPos, camera);
-      const intersects = raycaster.intersectObjects([globe], false);
+      // Update world matrix to account for rotations
+      globe.updateMatrixWorld(true);
+      const intersects = raycaster.intersectObject(globe, false);
       if (intersects.length > 0 && intersects[0].uv) {
         globeUV.copy(intersects[0].uv);
         uniforms.mouseUV.value.copy(globeUV);
@@ -202,20 +208,64 @@ export default function SimpleGlobe({ markers = [] }: SimpleGlobeProps) {
     }
 
     function animate() {
-      renderer.render(scene, camera);
-      globeGroup.rotation.y += 0.001; // Slow rotation
+      frameCount++;
       
-      handleRaycast();
-      orbitCtrl.update();
+      // Only run raycast every 3 frames for better performance
+      if (frameCount % 3 === 0) {
+        handleRaycast();
+      }
+      
+      // Passive rotation of stars
+      stars.rotation.y += 0.0002;
+      stars.rotation.x += 0.0001;
+      
+      // Passive rotation of globe (only when not dragging)
+      if (!isDragging) {
+        globeGroup.rotation.y += 0.001;
+      }
+      
+      renderer.render(scene, camera);
       requestAnimationFrame(animate);
     }
     animate();
 
     function onMouseMove(evt: MouseEvent) {
+      // Get mouse position relative to the canvas
+      const rect = renderer.domElement.getBoundingClientRect();
+      const x = evt.clientX - rect.left;
+      const y = evt.clientY - rect.top;
+      
       pointerPos.set(
-        (evt.clientX / window.innerWidth) * 2 - 1,
-        -(evt.clientY / window.innerHeight) * 2 + 1
+        (x / rect.width) * 2 - 1,
+        -(y / rect.height) * 2 + 1
       );
+
+      if (isDragging) {
+        const deltaX = evt.clientX - previousMousePosition.x;
+        const deltaY = evt.clientY - previousMousePosition.y;
+
+        // Allow X (vertical tilt) and Y (horizontal rotation) but lock Z to prevent slanting
+        globeGroup.rotation.y += deltaX * rotationSpeed;
+        globeGroup.rotation.x += deltaY * rotationSpeed;
+        
+        // Clamp X rotation to prevent flipping upside down
+        const maxRotation = Math.PI / 2.5; // Limit to about 72 degrees
+        globeGroup.rotation.x = Math.max(-maxRotation, Math.min(maxRotation, globeGroup.rotation.x));
+        
+        // Lock Z rotation to 0 to prevent slanting
+        globeGroup.rotation.z = 0;
+
+        previousMousePosition = { x: evt.clientX, y: evt.clientY };
+      }
+    }
+
+    function onMouseDown(evt: MouseEvent) {
+      isDragging = true;
+      previousMousePosition = { x: evt.clientX, y: evt.clientY };
+    }
+
+    function onMouseUp() {
+      isDragging = false;
     }
 
     function onResize() {
@@ -225,17 +275,21 @@ export default function SimpleGlobe({ markers = [] }: SimpleGlobeProps) {
     }
 
     window.addEventListener("mousemove", onMouseMove);
+    window.addEventListener("mousedown", onMouseDown);
+    window.addEventListener("mouseup", onMouseUp);
     window.addEventListener("resize", onResize);
 
     return () => {
       window.removeEventListener("mousemove", onMouseMove);
+      window.removeEventListener("mousedown", onMouseDown);
+      window.removeEventListener("mouseup", onMouseUp);
       window.removeEventListener("resize", onResize);
       if (mountRef.current) {
         mountRef.current.removeChild(renderer.domElement);
       }
       renderer.dispose();
     };
-  }, []);
+  }, [markers]);
 
   return <div ref={mountRef} style={{ width: "100%", height: "100%" }} className="absolute inset-0" />;
 }

@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { useSearchParams } from "next/navigation";
-import EarthScene from "@/components/ui/globe";
+import SimpleGlobe from "@/components/ui/simple-globe";
 import { ChatHeader } from "@/components/ChatHeader";
 import { ChatHistory } from "@/components/ChatHistory";
 import { ChatComposer } from "@/components/ChatComposer";
@@ -58,7 +58,7 @@ export default function ChatPage() {
             {/* Globe - Centered on left side */}
             <div className="absolute inset-0 right-[420px] flex items-center justify-center">
                 <div className="w-full h-full" style={{ transform: 'translateX(200px)' }}>
-                    {/*<EarthScene markers={[]} />*/}
+                    <SimpleGlobe markers={[{lat: 41.799983, long: -72.209358}]} />
                 </div>
                 {/* Vignette Effect */}
                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-transparent to-black/80 pointer-events-none" />

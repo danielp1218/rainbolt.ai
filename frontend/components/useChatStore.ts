@@ -132,6 +132,7 @@ export const useChatStore = create<ChatState>()(
                 }
             } else if (data.type === 'complete') {
                 // Analysis complete
+                console.log('Received complete message, resetting sending and thinking flags');
                 set({ thinking: false, sending: false, currentAssistantMessage: '' });
             } else if (data.type === 'error') {
                 // Handle error
@@ -177,7 +178,16 @@ export const useChatStore = create<ChatState>()(
 
     send: async (text: string) => {
         const state = get();
-        if (!text.trim() || state.sending || !state.ws) return;
+        console.log('Send called, state:', { sending: state.sending, hasWs: !!state.ws, textLength: text.trim().length });
+        
+        if (!text.trim() || state.sending || !state.ws) {
+            console.log('Send blocked:', { 
+                noText: !text.trim(), 
+                sending: state.sending, 
+                noWs: !state.ws 
+            });
+            return;
+        }
 
         // Immediately add user message
         const userMessage: Message = {
@@ -191,6 +201,7 @@ export const useChatStore = create<ChatState>()(
             messages: [...state.messages, userMessage],
             sending: true,
             thinking: true,
+            currentAssistantMessage: '', // Reset for new response
         });
 
         try {
@@ -201,12 +212,15 @@ export const useChatStore = create<ChatState>()(
                 throw new Error('No session ID available');
             }
 
+            // Get fresh state to include the user message we just added
+            const freshState = get();
+            
             // Send chat message with full history
             const chatMessage = {
                 type: 'chat_message',
                 text: text.trim(),
                 session_id: sessionId,
-                history: state.messages.map(msg => ({
+                history: freshState.messages.map(msg => ({
                     role: msg.role,
                     text: msg.text
                 }))

@@ -36,7 +36,7 @@ export default function Home() {
   }, []);
 
   return (
-    <div className="relative h-screen overflow-y-auto snap-y snap-mandatory scroll-smooth">
+    <div className="relative h-screen overflow-y-auto snap-mandatory scroll-smooth">
       {/* Background Elements */}
       <div className="fixed inset-0 z-0">
         <EarthScene
@@ -51,7 +51,7 @@ export default function Home() {
       <Navbar currentSection={currentSection} />
 
       {/* Hero Section with Earth */}
-      <section data-section-id="0" className="relative h-screen snap-start">
+      <section data-section-id="0" className="relative h-screen">
         <div className="absolute inset-0 pointer-events-none" />
         <div className="absolute inset-0 flex items-center z-[60]">
           <div className="container mx-auto">
@@ -177,7 +177,7 @@ export default function Home() {
       </section>
 
       {/* Contact Section */}
-      <section id="contact" data-section-id="4" className="relative h-screen snap-start">
+      <section id="contact" data-section-id="4" className="relative h-screen snap-always snap-start">
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="container mx-auto px-4 py-16">
             <h2 className="text-4xl font-bold text-white mb-12 text-center">
