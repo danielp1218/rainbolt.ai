@@ -51,11 +51,6 @@ export default function Home() {
       {/* Navigation */}
       <Navbar currentSection={currentSection} />
 
-      {/* Login Component - Fixed Top Right */}
-      <div className="fixed top-6 right-10 z-[999]">
-        <LoginComponent />
-      </div>
-
       {/* UWaterloo Badge - Animated entry on Meet the Team section */}
       <div className={`fixed right-6 top-1/2 transform -translate-y-1/2 z-50 transition-all duration-700 ease-out ${currentSection === 3
         ? 'translate-x-0 opacity-100'
@@ -90,12 +85,13 @@ export default function Home() {
                 Transforming ideas into intelligent solutions through cutting-edge artificial intelligence and machine learning.
               </p>
               <div className="mt-8 flex gap-4">
+                <Button size="lg" className="bg- text-black hover:bg-white/90" asChild>
+                  <a href="">Create an account</a>
+                </Button>
                 <Button size="lg" className="bg-white text-black hover:bg-white/90" asChild>
-                  <a href="/chat">Try Chat Interface</a>
+                  <a href="/chat">Try chat interface</a>
                 </Button>
-                <Button size="lg" variant="outline" className="border-white/20 text-white hover:bg-white/10" asChild>
-                  <a href="/learning">Globe Learning</a>
-                </Button>
+
               </div>
             </div>
           </div>
@@ -145,9 +141,9 @@ export default function Home() {
             {/* Rainbolt Images */}
             <div className="flex gap-4 mt-8">
               <div className="flex-1">
-                <img 
-                  src="/Rainbolt-JB1-High-Quality-PHOTO-e1666190809190-1000x669.jpg" 
-                  alt="Rainbolt Cool" 
+                <img
+                  src="/rainbolt_cool.jpg"
+                  alt="Rainbolt Cool"
                   className="w-full h-32 object-cover rounded-lg bg-white/10"
                 />
                 <p className="text-white/60 text-sm mt-2 text-center">Trevor Rainbolt</p>
