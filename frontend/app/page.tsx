@@ -36,7 +36,7 @@ export default function Home() {
   }, []);
 
   return (
-    <div className="relative h-screen overflow-y-auto snap-mandatory scroll-smooth">
+    <div className="relative h-screen overflow-y-auto snap-y snap-mandatory scroll-smooth">
       {/* Background Elements */}
       <div className="fixed inset-0 z-0">
         <EarthScene
@@ -50,8 +50,25 @@ export default function Home() {
       {/* Navigation */}
       <Navbar currentSection={currentSection} />
 
+      {/* UWaterloo Badge - Animated entry on Meet the Team section */}
+      <div className={`fixed right-6 top-1/2 transform -translate-y-1/2 z-50 transition-all duration-700 ease-out ${
+        currentSection === 3 
+          ? 'translate-x-0 opacity-100' 
+          : 'translate-x-full opacity-0'
+      }`}>
+        <div className="bg-white/10 backdrop-blur-md rounded-lg p-6 border border-white/20 shadow-xl">
+          <div className="text-center">
+            <h3 className="text-white font-bold text-lg mb-4">University of Waterloo</h3>
+            <div className="w-32 h-24 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg mx-auto flex items-center justify-center mb-3">
+              <span className="text-white font-bold text-2xl">UW</span>
+            </div>
+            <p className="text-white/70 text-sm">Innovation • Technology • Excellence</p>
+          </div>
+        </div>
+      </div>
+
       {/* Hero Section with Earth */}
-      <section data-section-id="0" className="relative h-screen">
+      <section data-section-id="0" className="relative h-screen snap-start">
         <div className="absolute inset-0 pointer-events-none" />
         <div className="absolute inset-0 flex items-center z-[60]">
           <div className="container mx-auto">
@@ -153,23 +170,23 @@ export default function Home() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="p-6 bg-white/5 rounded-lg backdrop-blur-sm text-center">
                 <div className="w-20 h-20 rounded-full bg-white/10 mx-auto mb-4"></div>
-                <h3 className="text-xl font-bold text-white mb-2">John Doe</h3>
-                <p className="text-white/80">AI Research Lead</p>
+                <h3 className="text-xl font-bold text-white mb-2">Daniel Pu</h3>
+                <p className="text-white/80">UW CS</p>
               </div>
               <div className="p-6 bg-white/5 rounded-lg backdrop-blur-sm text-center">
                 <div className="w-20 h-20 rounded-full bg-white/10 mx-auto mb-4"></div>
-                <h3 className="text-xl font-bold text-white mb-2">Jane Smith</h3>
-                <p className="text-white/80">ML Engineer</p>
+                <h3 className="text-xl font-bold text-white mb-2">Evan Yang</h3>
+                <p className="text-white/80">UW SYDE</p>
               </div>
               <div className="p-6 bg-white/5 rounded-lg backdrop-blur-sm text-center">
                 <div className="w-20 h-20 rounded-full bg-white/10 mx-auto mb-4"></div>
-                <h3 className="text-xl font-bold text-white mb-2">Mike Johnson</h3>
-                <p className="text-white/80">Data Scientist</p>
+                <h3 className="text-xl font-bold text-white mb-2">Daniel Liu</h3>
+                <p className="text-white/80">UW CFM</p>
               </div>
               <div className="p-6 bg-white/5 rounded-lg backdrop-blur-sm text-center">
                 <div className="w-20 h-20 rounded-full bg-white/10 mx-auto mb-4"></div>
-                <h3 className="text-xl font-bold text-white mb-2">Sarah Wilson</h3>
-                <p className="text-white/80">Product Manager</p>
+                <h3 className="text-xl font-bold text-white mb-2">TingXuan Wang</h3>
+                <p className="text-white/80">UW MGTE</p>
               </div>
             </div>
           </div>
@@ -177,7 +194,7 @@ export default function Home() {
       </section>
 
       {/* Contact Section */}
-      <section id="contact" data-section-id="4" className="relative h-screen snap-always snap-start">
+      <section id="contact" data-section-id="4" className="relative h-screen snap-start">
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="container mx-auto px-4 py-16">
             <h2 className="text-4xl font-bold text-white mb-12 text-center">

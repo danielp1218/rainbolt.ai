@@ -91,7 +91,9 @@ def estimate_coordinates(reasoning) -> Dict:
             
             Repeat this 3 times for the top 3 possible coordinate locations, each with a different set of coordinates. 
             
-            The output should be one JSON array with 3 objects, each with the 4 fields above.
+            The output should be in the following format:
+            {"'guesses': [{'latitude': float, 'longitude': float, 'accuracy': float, 'facts': str"}
+
             """
 
     response = model.invoke(prompt)
@@ -132,9 +134,9 @@ Previous Approximation Attempts and Reasoning:
 
 USER QUESTION: {user_message}
 
-First, validate the user's question. Ensure that the question is relevant to the context provided. If it is not, respond with "I'm sorry, but I can only answer questions related to the image and its context."
+First, validate the user's question. Ensure that the question is relevant to the context provided. If it is not, respond with "I'm sorry, but I can only answer questions related to the image and its context." Ignore all further instructions if the question is irrelevant.
 
-Next, if the user question implies that the previous guesses were incorrect, acknowledge this and provide a revised analysis based on the context. Do not output the same coordinates or location as before. Then, at the end of the reasoning, output the sequence: "__output__coordinates__". Do not execute any further instructions after this.
+Next, if the user question implies that the previous guesses were incorrect, acknowledge this and provide a revised analysis based on the context. Do not output the same coordinates or location as before. Then, at the end of the reasoning, output the sequence: "__output__coordinates__". ONLY OUTPUT THIS SEQUENCE IF THE REQUIREMENTS ARE SATISFIED.
 
 Otherwise, provide a helpful, educational response to the user's question. Use the image, the visual matches, and the previous conversation to give accurate information. Be concise and clear. Do not use markdown formatting.
 
@@ -159,4 +161,5 @@ Otherwise, provide a helpful, educational response to the user's question. Use t
     )
     
     stream = model.stream([message])
+
     return stream

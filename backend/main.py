@@ -160,28 +160,28 @@ async def websocket_chat(websocket: WebSocket, session_id: str):
                         image
                     )
                     
-                    full_response = ""
+                    response = ""
                     for chunk in response_stream:
                         chunk_text = chunk.content
-                        full_response += chunk_text
+                        response += chunk_text
+
+                    await manager.send_message(session_id, {
+                        "type": "chat_response_chunk",
+                        "text": response
+                    })
+
+                    # Handle recalculation trigger
+                    if "__output__coordinates__" in response:
+                        response = response.replace("__output__coordinates__", "")
                         await manager.send_message(session_id, {
-                            "type": "chat_response_chunk",
-                            "text": chunk_text
+                            "type": "chat_response_coordinates", 
+                            "text": "Recalculating coordinates..."
                         })
-                    
-                    # Check if AI wants to output new coordinates
-                    if "__output__coordinates__" in full_response:
-                        await manager.send_message(session_id, {
-                            "type": "status",
-                            "message": "Calculating revised coordinates..."
-                        })
-                        
-                        # Generate new coordinates based on the reasoning
-                        coordinates = estimate_coordinates(full_response)
-                        
+                        # Recalculate coordinates
+                        new_coords = estimate_coordinates(response)
                         await manager.send_message(session_id, {
                             "type": "coordinates",
-                            "text": coordinates
+                            "text": new_coords
                         })
                     
                     await manager.send_message(session_id, {

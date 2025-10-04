@@ -7,12 +7,13 @@ from PIL import Image
 from dotenv import load_dotenv
 load_dotenv()  # Load environment variables from .env file
 
-# env variables should be loaded in upstream code
-if not os.getenv("PINECONE_API_KEY"):
-    raise ValueError("PINECONE_API_KEY environment variable not set")
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 model, preprocess = clip.load("ViT-B/32", device=device)
+
+# env variables should be loaded in upstream code
+if not os.getenv("PINECONE_API_KEY"):
+    raise ValueError("PINECONE_API_KEY environment variable not set")
 
 pinecone = Pinecone(
     api_key=os.getenv("PINECONE_API_KEY"),
