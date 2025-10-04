@@ -88,12 +88,12 @@ export default function Home() {
 
       {/* Features Section */}
       <section id="features" data-section-id="1" className="relative h-screen snap-start">
-        <div className="absolute inset-0 flex items-center">
+        <div className="absolute inset-0 flex items-start pt-20">
           <div className="container mx-auto px-4">
             <h2 className="text-4xl font-bold text-white mb-12 text-center">
               Features
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-white/80">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-white/80 max-w-5xl mx-auto">
               <div className="p-6 bg-white/5 rounded-lg backdrop-blur-sm">
                 <h3 className="text-xl font-bold mb-4">Advanced AI</h3>
                 <p>State-of-the-art artificial intelligence solutions for your business needs.</p>

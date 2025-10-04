@@ -426,18 +426,12 @@ intensity = pow(intensity, 1.5); // Reduced exponent for larger middle gradient
     }
 
     function animate() {
-      // Smooth camera movement
+      // Smooth camera movement (synchronized slow transitions)
       if (cameraRef.current) {
-        cameraRef.current.position.lerp(targetPosition.current, 0.05);
+        cameraRef.current.position.lerp(targetPosition.current, 0.015);
 
-        // Smooth camera look-at
-        const currentLookAt = new THREE.Vector3();
-        cameraRef.current.getWorldDirection(currentLookAt);
-        currentLookAt.multiplyScalar(cameraRef.current.position.length());
-        currentLookAt.add(cameraRef.current.position);
-        currentLookAt.lerp(targetLookAt.current, 0.05);
-
-        orbitCtrl.target.copy(targetLookAt.current);
+        // Smooth orbit controls target (same rate for consistency)
+        orbitCtrl.target.lerp(targetLookAt.current, 0.015);
       }
 
       // Update emoji tracking continuously (even when mouse not moving)
@@ -535,10 +529,10 @@ intensity = pow(intensity, 1.5); // Reduced exponent for larger middle gradient
     // Define camera positions for each section
     const positions: Record<number, { position: [number, number, number]; lookAt: [number, number, number] }> = {
       0: { position: [7, 0, 4], lookAt: [-7.7, 0, 0] },        // Hero - default view
-      1: { position: [8, 0, -8], lookAt: [-7.7, 0, 0] },          // Features - right angle
-      2: { position: [-10, 0, 0], lookAt: [-7.7, 0, 0] },         // About - left angle
-      3: { position: [8, 0, -2], lookAt: [-7.7, 0, 0] },         // Team - bottom angle
-      4: { position: [8, 0, -8], lookAt: [-7.7, 0, 0] },          // Contact - top view
+      1: { position: [6, -4, 2], lookAt: [-7.7, 1, -0.85] },      // Features - globe at bottom, camera lower
+      2: { position: [-10, 0, 0], lookAt: [-7.7, 0, 0] },      // About - left angle
+      3: { position: [8, 0, -2], lookAt: [-7.7, 0, 0] },       // Team - bottom angle
+      4: { position: [8, 0, -8], lookAt: [-7.7, 0, 0] },       // Contact - top view
     };
 
     const config = positions[currentSection] || positions[0];
