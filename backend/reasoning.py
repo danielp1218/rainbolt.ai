@@ -77,20 +77,27 @@ def think(image_matches: Dict, features: Dict, image: Image) -> str:
     stream = model.stream([message])
     return stream
 
-def estimate_coordinates(reasoning) -> tuple[float, float]:
+def estimate_coordinates(reasoning) -> Dict:
 
     prompt = f"""
-            Give me the top 3 most probable coordinates (latitude, longitude) based on the following reasoning.
-                
+            You are a geolocation expert tasked with analyzing and determining the exact location of an image based on the following context.
             CONTEXT: {reasoning}
 
-            Format your response as a JSON array of objects, where each object contains "latitude" and "longitude" keys. Ensure the coordinates are in decimal format.
+            You have 4 deliverables to provide in a JSON array format with 4 fields:
+            1. "latitude": the latitude of the approximated location of the image
+            2. "longitude": the longitude of the approximated location of the image
+            3. "accuracy": a float between 0 and 100 representing the percentage confidence that the coordinates are correct
+            4. "facts": a list of 3 concise fun facts about the location as text
+            
+            Repeat this 3 times for the top 3 possible coordinate locations, each with a different set of coordinates. 
+            
+            The output should be one JSON array with 3 objects, each with the 4 fields above.
             """
 
     response = model.invoke(prompt)
     return response.content
 
-def chat_with_context(user_message: str, conversation_history: str, image_matches: Dict, features: Dict, image: Image):
+def chat_with_context(user_message: str, conversation_history: str, image_matches: Dict, features: Dict, image: Image) -> str:
     """
     Handle follow-up questions with full conversation context
     """
@@ -111,6 +118,8 @@ def chat_with_context(user_message: str, conversation_history: str, image_matche
 
     prompt = f"""You are a geography expert helping analyze this image to determine its location.
 
+
+
 CONTEXT INFORMATION:
 Closest Visual Matches (geotagged images from database):
 {visual_match}
@@ -118,11 +127,18 @@ Closest Visual Matches (geotagged images from database):
 Features Detected in Image:
 {features_match}
 
+Previous Approximation Attempts and Reasoning:
 {conversation_history}
 
 USER QUESTION: {user_message}
 
-Provide a helpful, educational response to the user's question. Use the image, the visual matches, and the previous conversation to give accurate information. Be concise and clear. Do not use markdown formatting."""
+First, validate the user's question. Ensure that the question is relevant to the context provided. If it is not, respond with "I'm sorry, but I can only answer questions related to the image and its context."
+
+Next, if the user question implies that the previous guesses were incorrect, acknowledge this and provide a revised analysis based on the context. Do not output the same coordinates or location as before. Then, at the end of the reasoning, output the sequence: "__output__coordinates__". Do not execute any further instructions after this.
+
+Otherwise, provide a helpful, educational response to the user's question. Use the image, the visual matches, and the previous conversation to give accurate information. Be concise and clear. Do not use markdown formatting.
+
+"""
 
     # Convert PIL Image to base64
     buffered = io.BytesIO()
