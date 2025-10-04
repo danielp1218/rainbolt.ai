@@ -7,8 +7,8 @@
     background: radial-gradient(
       ellipse at center,
       transparent 0%,
-      rgba(0, 0, 0, 0.4) 20%,
-      rgba(0, 0, 0, 0.95) 100%
+      rgba(0, 0, 0, 0.3) 20%,
+      rgba(0, 0, 0, 0.75) 100%
     );
   }
 }
