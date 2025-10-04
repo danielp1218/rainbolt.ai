@@ -91,8 +91,8 @@ def estimate_coordinates(reasoning) -> Dict:
             
             Repeat this 3 times for the top 3 possible coordinate locations, each with a different set of coordinates. 
             
-            The output should be in the following format:
-            {"'guesses': [{'latitude': float, 'longitude': float, 'accuracy': float, 'facts': str"}
+            The output should be in the following JSON array format with 3 objects (each with 4 attributes):
+            [{"{"}{"'latitude': float, 'longitude': float, 'accuracy': float, 'facts': str"}{"}"}]
 
             """
 
