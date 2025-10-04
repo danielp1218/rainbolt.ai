@@ -8,6 +8,7 @@ import { ChatLauncher } from "@/components/ChatLauncher";
 import { ChatPanel } from "@/components/ChatPanel";
 
 import "./glow.css";
+import LoginComponent from "@/components/ui/Login_component";
 
 export default function Home() {
   const [currentSection, setCurrentSection] = useState(0);
@@ -50,12 +51,16 @@ export default function Home() {
       {/* Navigation */}
       <Navbar currentSection={currentSection} />
 
+      {/* Login Component - Fixed Top Right */}
+      <div className="fixed top-6 right-10 z-50">
+        <LoginComponent />
+      </div>
+
       {/* UWaterloo Badge - Animated entry on Meet the Team section */}
-      <div className={`fixed right-6 top-1/2 transform -translate-y-1/2 z-50 transition-all duration-700 ease-out ${
-        currentSection === 3 
-          ? 'translate-x-0 opacity-100' 
-          : 'translate-x-full opacity-0'
-      }`}>
+      <div className={`fixed right-6 top-1/2 transform -translate-y-1/2 z-50 transition-all duration-700 ease-out ${currentSection === 3
+        ? 'translate-x-0 opacity-100'
+        : 'translate-x-full opacity-0'
+        }`}>
         <div className="bg-white/10 backdrop-blur-md rounded-lg p-6 border border-white/20 shadow-xl">
           <div className="text-center">
             <h3 className="text-white font-bold text-lg mb-4">University of Waterloo</h3>
@@ -86,10 +91,13 @@ export default function Home() {
               </p>
               <div className="mt-8 flex gap-4">
                 <Button size="lg" className="bg-white text-black hover:bg-white/90" asChild>
+                  <a href="">Log In</a>
+                </Button>
+                <Button size="lg" className="bg-white text-black hover:bg-white/90" asChild>
                   <a href="/chat">Try Chat Interface</a>
                 </Button>
-                <Button size="lg" variant="outline" className="border-white/20 text-black hover:bg-white/90">
-                  <a href="">Learn More</a>
+                <Button size="lg" className="bg-white text-black hover:bg-white/90" asChild>
+                  <a href="/upload">Learn More</a>
                 </Button>
               </div>
             </div>
@@ -134,23 +142,23 @@ export default function Home() {
                 Rainbolt.ai is inspired by the incredible work of Rainbolt (Trevor Rainbolt), a creator known for his lightning-fast skills in identifying geographical locations from single images, with the red smile emoji as his iconic symbol.
               </p>
               <p>
-               Just as Rainbolt helps people uncover long-lost locations across the world, Rainbolt.ai empowers users to learn geography in an engaging way. It also supports meaningful challenges, from helping families reconnect to discovering places of personal significance.               </p>
+                Just as Rainbolt helps people uncover long-lost locations across the world, Rainbolt.ai empowers users to learn geography in an engaging way. It also supports meaningful challenges, from helping families reconnect to discovering places of personal significance.               </p>
             </div>
-            
+
             {/* Rainbolt Images */}
             <div className="flex gap-4 mt-8">
               <div className="flex-1">
-                <img 
-                  src="/rainbolt_cool.jpg" 
-                  alt="Rainbolt Cool" 
+                <img
+                  src="/rainbolt_cool.jpg"
+                  alt="Rainbolt Cool"
                   className="w-full h-32 object-cover rounded-lg bg-white/10"
                 />
                 <p className="text-white/60 text-sm mt-2 text-center">Trevor Rainbolt</p>
               </div>
               <div className="flex-1">
-                <img 
-                  src="/rainbolt_staring.webp" 
-                  alt="Rainbolt Staring" 
+                <img
+                  src="/rainbolt_staring.webp"
+                  alt="Rainbolt Staring"
                   className="w-full h-32 object-cover rounded-lg bg-white/10"
                 />
                 <p className="text-white/60 text-sm mt-2 text-center">Rainbolt Focused</p>
@@ -232,6 +240,6 @@ export default function Home() {
           </div>
         </div>
       </section>
-    </div>
+    </div >
   );
 }

@@ -7,6 +7,7 @@ import { ChatHeader } from "@/components/ChatHeader";
 import { ChatHistory } from "@/components/ChatHistory";
 import { ChatComposer } from "@/components/ChatComposer";
 import { useChatStore } from "@/components/useChatStore";
+import LoginComponent from "@/components/ui/Login_component";
 
 
 export default function ChatPage() {
@@ -18,22 +19,22 @@ export default function ChatPage() {
     const nextMarker = useChatStore((state) => state.nextMarker);
     const previousMarker = useChatStore((state) => state.previousMarker);
     const [isLocked, setIsLocked] = useState(true);
-    
+
     // Connect WebSocket when page mounts with session info
     useEffect(() => {
         const sessionId = searchParams.get('session');
-        
+
         // Get stored state
         const store = useChatStore.getState();
         const { sessionId: storedSessionId, hasProcessedSession, connectWebSocket, markSessionProcessed } = store;
-        
-        console.log('Chat page mounted', { 
-            sessionId, 
-            storedSessionId, 
+
+        console.log('Chat page mounted', {
+            sessionId,
+            storedSessionId,
             hasProcessedSession,
-            hasUploadedImage: !!uploadedImageUrl 
+            hasUploadedImage: !!uploadedImageUrl
         });
-        
+
         // Only connect if we have session info and haven't processed this exact session yet
         if (sessionId) {
             // Check if this is the same session we already processed
@@ -41,7 +42,7 @@ export default function ChatPage() {
                 console.log('Session already processed, skipping WebSocket connection');
                 return;
             }
-            
+
             // File path is always uploads/{sessionId}.{extension}
             // We'll send the session ID and backend will construct the path
             console.log('Connecting WebSocket from chat page...');
@@ -52,28 +53,25 @@ export default function ChatPage() {
                 console.error('Failed to connect WebSocket:', err);
             });
         }
-        
+
         return () => {
             console.log('Chat page unmounting, disconnecting WebSocket');
             // Get the latest disconnectWebSocket from store in cleanup
             useChatStore.getState().disconnectWebSocket();
         };
     }, [searchParams, uploadedImageUrl]); // Re-run when URL params or image changes
-    
-    // Markers are now loaded from AI responses via WebSocket
-    // No need for test markers
-    
-    // Debug: Log markers whenever they change
+
+    // Test markers - will be replaced by actual markers from WebSocket
     useEffect(() => {
         console.log('Markers updated:', markers);
     }, [markers]);
 
     // Convert all markers to SimpleGlobe format
-    const globeMarkers = markers.map(m => ({ 
-        lat: m.latitude, 
-        long: m.longitude 
+    const globeMarkers = markers.map(m => ({
+        lat: m.latitude,
+        long: m.longitude
     }));
-    
+
     console.log('Globe markers:', globeMarkers, 'Total markers:', markers.length);
 
     // Handler for when a marker is clicked
@@ -84,8 +82,8 @@ export default function ChatPage() {
     };
 
     // Get current marker data
-    const currentMarkerData = markers.length > 0 && currentMarker < markers.length 
-        ? markers[currentMarker] 
+    const currentMarkerData = markers.length > 0 && currentMarker < markers.length
+        ? markers[currentMarker]
         : null;
 
     return (
@@ -93,9 +91,9 @@ export default function ChatPage() {
             {/* Globe - Moved further to the right */}
             <div className="absolute inset-0 right-[420px] flex items-center justify-center">
                 <div className="w-full h-full" style={{ transform: 'translateX(300px)' }}>
-                    <SimpleGlobe 
-                        markers={globeMarkers} 
-                        targetMarkerIndex={currentMarker} 
+                    <SimpleGlobe
+                        markers={globeMarkers}
+                        targetMarkerIndex={currentMarker}
                         isLocked={isLocked}
                         onUnlock={() => setIsLocked(false)}
                         onLock={() => setIsLocked(true)}
@@ -125,7 +123,7 @@ export default function ChatPage() {
                                 </div>
                             </div>
                         </div>
-                        
+
                         <div className="space-y-3">
                             <div>
                                 <div className="flex items-center gap-2 mb-2">
@@ -134,7 +132,7 @@ export default function ChatPage() {
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <div className="flex-1 h-2 bg-white/10 rounded-full overflow-hidden">
-                                        <div 
+                                        <div
                                             className="h-full bg-gradient-to-r from-blue-500 to-green-500 rounded-full transition-all duration-500"
                                             style={{ width: `${currentMarkerData.accuracy * 100}%` }}
                                         ></div>
@@ -142,7 +140,7 @@ export default function ChatPage() {
                                     <span className="text-white font-medium text-sm">{(currentMarkerData.accuracy * 100).toFixed(0)}%</span>
                                 </div>
                             </div>
-                            
+
                             <div>
                                 <div className="flex items-center gap-2 mb-2">
                                     <span className="text-white/50 text-xs uppercase tracking-wider">Analysis</span>
@@ -155,7 +153,7 @@ export default function ChatPage() {
                         </div>
                     </div>
                 )}
-                
+
                 {/* Lock/Unlock Toggle Button */}
                 <div className="absolute top-8 left-8 z-10">
                     <button
@@ -179,7 +177,7 @@ export default function ChatPage() {
                         )}
                     </button>
                 </div>
-                
+
                 {/* Marker Navigation Buttons */}
                 {markers.length > 1 && (
                     <div className="absolute bottom-8 left-[60%] transform flex items-center gap-4 bg-black/80 backdrop-blur-sm rounded-full px-6 py-3 border border-white/20 z-10">
@@ -235,9 +233,9 @@ export default function ChatPage() {
                 {uploadedImageUrl && (
                     <div className="flex-shrink-0 p-4 border-b border-white/10">
                         <div className="relative rounded-lg overflow-hidden bg-black/50">
-                            <img 
-                                src={uploadedImageUrl} 
-                                alt="Uploaded image" 
+                            <img
+                                src={uploadedImageUrl}
+                                alt="Uploaded image"
                                 className="w-full h-32 object-cover"
                             />
                         </div>
