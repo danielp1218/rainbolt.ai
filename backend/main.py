@@ -191,6 +191,8 @@ async def websocket_chat(websocket: WebSocket, session_id: str):
                         "message": f"Error processing image: {str(e)}"
                     })
 
+
+
     except WebSocketDisconnect:
         print(f"WebSocket disconnected: {session_id}")
         manager.disconnect(session_id)
