@@ -52,7 +52,7 @@ export default function Home() {
       <Navbar currentSection={currentSection} />
 
       {/* Login Component - Fixed Top Right */}
-      <div className="fixed top-6 right-10 z-50">
+      <div className="fixed top-6 right-10 z-[999]">
         <LoginComponent />
       </div>
 
