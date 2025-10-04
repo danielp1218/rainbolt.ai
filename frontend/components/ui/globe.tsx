@@ -26,17 +26,9 @@ export default function EarthScene({ markers = [], currentSection = 0 }: EarthSc
   const targetLookAt = useRef(new THREE.Vector3(-7.7, 0, 0));
 
   // Add Waterloo as a default marker
-  const defaultMarkers: Location[] = [
-    {
-      lat: 43.4643, // Waterloo, Ontario latitude
-      long: -80.5204, // Waterloo, Ontario longitude
-      label: "Waterloo",
-      color: "#00ff00" // Green marker
-    },
-    ...markers // Include any additional markers passed as props
-  ];
-
-  useEffect(() => {
+const defaultMarkers = [
+  { lat: 43.4643, long: -80.5204, label: "Waterloo, Canada" },
+];  useEffect(() => {
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(
       45,
@@ -199,7 +191,7 @@ export default function EarthScene({ markers = [], currentSection = 0 }: EarthSc
 
       const markerGeometry = new THREE.SphereGeometry(0.02, 16, 16);
       const markerMaterial = new THREE.MeshBasicMaterial({
-        color: marker.color || '#ff0000',
+        color: '#ff0000',
         transparent: true,
         opacity: 0.8,
       });
@@ -210,7 +202,7 @@ export default function EarthScene({ markers = [], currentSection = 0 }: EarthSc
       // Add glow effect to marker
       const markerGlowGeometry = new THREE.SphereGeometry(0.03, 16, 16);
       const markerGlowMaterial = new THREE.MeshBasicMaterial({
-        color: marker.color || '#ff0000',
+        color: '#ff0000',
         transparent: true,
         opacity: 0.3,
       });
