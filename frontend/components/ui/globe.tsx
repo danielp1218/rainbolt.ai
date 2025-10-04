@@ -25,7 +25,10 @@ export default function EarthScene({ markers = [], currentSection = 0 }: EarthSc
   const targetPosition = useRef(new THREE.Vector3(7, 0, 4));
   const targetLookAt = useRef(new THREE.Vector3(-7.7, 0, 0));
 
-  useEffect(() => {
+  // Add Waterloo as a default marker
+const defaultMarkers = [
+  { lat: 43.4643, long: -80.5204, label: "Waterloo, Canada" },
+];  useEffect(() => {
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(
       45,
@@ -54,7 +57,12 @@ export default function EarthScene({ markers = [], currentSection = 0 }: EarthSc
     const raycaster = new THREE.Raycaster();
     const pointerPos = new THREE.Vector2();
     const globeUV = new THREE.Vector2();
-
+    
+    // Mouse tracking for emoji lookAt calculations
+    const mouse = new THREE.Vector2();
+    const emojiRaycaster = new THREE.Raycaster();
+    const targetPoint = new THREE.Vector3();
+    
     // Store reference to emoji for mouse following
     let emojiModel: THREE.Group | null = null;
     let emojiHead: THREE.Object3D | null = null;
@@ -109,12 +117,11 @@ export default function EarthScene({ markers = [], currentSection = 0 }: EarthSc
 
         // Make it MUCH bigger so we can definitely see it
         emojiModel.scale.set(0.8, 0.8, 0.8);
-
-        // Set initial rotation to face the right direction
-        emojiModel.rotation.x = Math.PI * 0; // Tilt forward slightly (18 degrees)
-        emojiModel.rotation.y = Math.PI * 0.25; // Rotate 45 degrees horizontally
-        emojiModel.rotation.z = Math.PI * 0; // No roll
-
+        
+        // Store the original rotation to account for model facing -Y in Blender
+        // Don't apply fixed rotation - let lookAt() handle full orientation
+        emojiModel.rotation.set(0, 0, 0);
+        
         // Enable rotation animation
 
         // Preserve original Blender materials - don't override them
@@ -156,7 +163,7 @@ export default function EarthScene({ markers = [], currentSection = 0 }: EarthSc
         scene.add(emojiLight);
 
         // Add a second fill light from the front
-        const emojiFillLight = new THREE.PointLight(0xffffff, 15, 100);
+        const emojiFillLight = new THREE.PointLight(0xffffff, 25, 100);
         emojiFillLight.position.set(
           emojiModel.position.x + 2, // In front of emoji
           emojiModel.position.y,
@@ -179,12 +186,12 @@ export default function EarthScene({ markers = [], currentSection = 0 }: EarthSc
 
     // Add markers
     const markerGroup = new THREE.Group();
-    markers.forEach((marker) => {
+    defaultMarkers.forEach((marker) => {
       const [x, y, z] = latLongToVector3(marker.lat, marker.long, 1.02); // Slightly larger radius to place markers above surface
 
       const markerGeometry = new THREE.SphereGeometry(0.02, 16, 16);
       const markerMaterial = new THREE.MeshBasicMaterial({
-        color: marker.color || '#ff0000',
+        color: '#ff0000',
         transparent: true,
         opacity: 0.8,
       });
@@ -195,7 +202,7 @@ export default function EarthScene({ markers = [], currentSection = 0 }: EarthSc
       // Add glow effect to marker
       const markerGlowGeometry = new THREE.SphereGeometry(0.03, 16, 16);
       const markerGlowMaterial = new THREE.MeshBasicMaterial({
-        color: marker.color || '#ff0000',
+        color: '#ff0000',
         transparent: true,
         opacity: 0.3,
       });
@@ -226,10 +233,10 @@ export default function EarthScene({ markers = [], currentSection = 0 }: EarthSc
         float alignment = dot(vNormal, vPositionNormal);
 // Flip it so edges are bright, center is dim
 float intensity = 1.0 - smoothstep(0.0, 1.0, 1.0-abs(alignment));
-intensity = pow(intensity, 3.0); // tweak exponent for softness/hardness
+intensity = pow(intensity, 1.5); // Reduced exponent for larger middle gradient
         
         vec3 glowColor = vec3(1.0, 0.1, 0.1);
-        vec3 glow = glowColor * intensity * 1.0;
+        vec3 glow = glowColor * intensity * 3.0;
         
         gl_FragColor = vec4(glow, intensity * 0.5);
       }
@@ -250,6 +257,63 @@ intensity = pow(intensity, 3.0); // tweak exponent for softness/hardness
       glowMaterial
     );
     globeGroup.add(glowMesh);
+
+    // Add flying streak particles (head/tail only, not full orbits)
+    const streakParticles: Array<{
+      head: THREE.Mesh;
+      tail: THREE.Mesh[];
+      angle: number;
+      speed: number;
+      radius: number;
+      axis: THREE.Vector3;
+    }> = [];
+
+    function createStreakParticle(radius: number, color: number, speed: number, axis: THREE.Vector3) {
+      // Head particle (bright)
+      const headGeometry = new THREE.SphereGeometry(0.015, 8, 8); // Reduced from 0.02 to match tail size
+      const headMaterial = new THREE.MeshBasicMaterial({
+        color,
+        transparent: true,
+        opacity: 1.0,
+      });
+      const head = new THREE.Mesh(headGeometry, headMaterial);
+
+      // Tail particles (fading)
+      const tail: THREE.Mesh[] = [];
+      const tailLength = 15; // Increased from 8 to make longerhead streaks
+      
+      for (let i = 0; i < tailLength; i++) {
+        const tailGeometry = new THREE.SphereGeometry(0.015 - (i * 0.0003), 6, 6); // Smaller size reduction
+        const opacity = 1.0 - (i / tailLength) * 0.9; // Fade from 1.0 to 0.1
+        const tailMaterial = new THREE.MeshBasicMaterial({
+          color,
+          transparent: true,
+          opacity,
+        });
+        const tailSegment = new THREE.Mesh(tailGeometry, tailMaterial);
+        tail.push(tailSegment);
+        globeGroup.add(tailSegment);
+      }
+
+      globeGroup.add(head);
+
+      return {
+        head,
+        tail,
+        angle: Math.random() * Math.PI * 2,
+        speed,
+        radius,
+        axis,
+      };
+    }
+
+    // Create multiple streak particles
+    streakParticles.push(
+      createStreakParticle(1.3, 0xffffff, 0.02, new THREE.Vector3(0, 1, 0)), // Horizontal white
+      createStreakParticle(1.4, 0xccddff, 0.015, new THREE.Vector3(1, 0.5, 0).normalize()), // Tilted blue
+      createStreakParticle(1.5, 0xffccdd, 0.018, new THREE.Vector3(0.5, 0, 1).normalize()), // Tilted pink
+      createStreakParticle(1.35, 0xddffcc, 0.012, new THREE.Vector3(1, 1, 0).normalize()), // Green (now positive speed)
+    );
 
     // Create a second layer for interactive points
     const detail = 120;
@@ -376,9 +440,59 @@ intensity = pow(intensity, 3.0); // tweak exponent for softness/hardness
         orbitCtrl.target.copy(targetLookAt.current);
       }
 
+      // Update emoji tracking continuously (even when mouse not moving)
+      if (emojiModel) {
+        // Cast ray from camera through mouse position
+        emojiRaycaster.setFromCamera(mouse, camera);
+        
+        // Get cursor point in 3D space at distance 1 from camera
+        const cursorPoint = new THREE.Vector3();
+        emojiRaycaster.ray.at(1, cursorPoint); // 1 unit out from camera
+        
+        // Calculate direction from emoji to cursor point
+        const direction = cursorPoint.clone().sub(emojiModel.position).normalize();
+        
+        // Create target point by moving from emoji position in direction of cursor
+        const targetPoint = emojiModel.position.clone().add(direction);
+        
+        // Make emoji look at the target point (toward cursor)
+        emojiModel.lookAt(targetPoint);
+      }
+
       renderer.render(scene, camera);
       globeGroup.rotation.y += 0.001;
-
+      
+      // Animate streak particles (head and tail movement)
+      streakParticles.forEach((streak) => {
+        // Update angle
+        streak.angle += streak.speed;
+        
+        // Calculate new position around the orbit
+        const basePos = new THREE.Vector3(
+          Math.cos(streak.angle) * streak.radius,
+          0,
+          Math.sin(streak.angle) * streak.radius
+        );
+        
+        // Apply axis rotation for different orbital planes
+        basePos.applyAxisAngle(streak.axis, streak.angle * 0.5);
+        
+        // Position head
+        streak.head.position.copy(basePos);
+        
+        // Position tail segments (follow behind head)
+        streak.tail.forEach((tailSegment, i) => {
+          const trailAngle = streak.angle - (i + 1) * 0.02; // Much closer spacing
+          const trailPos = new THREE.Vector3(
+            Math.cos(trailAngle) * streak.radius,
+            0,
+            Math.sin(trailAngle) * streak.radius
+          );
+          trailPos.applyAxisAngle(streak.axis, trailAngle * 0.5);
+          tailSegment.position.copy(trailPos);
+        });
+      });
+      
       handleRaycast();
       orbitCtrl.update();
 
@@ -391,32 +505,10 @@ intensity = pow(intensity, 3.0); // tweak exponent for softness/hardness
         (evt.clientX / window.innerWidth) * 2 - 1,
         -(evt.clientY / window.innerHeight) * 2 + 1
       );
-
-      // Use Euler angles with specific rotation order for better control
-      if (emojiModel) {
-        // Convert mouse to normalized device coordinates
-        const mouse = new THREE.Vector2();
-        mouse.x = (evt.clientX / window.innerWidth) * 2 - 1;
-        mouse.y = -(evt.clientY / window.innerHeight) * 2 + 1;
-
-        console.log('Mouse:', mouse.x, mouse.y);
-
-        // Create Euler angles with YXZ order (yaw, pitch, roll)
-        const rotationSensitivity = 0.8;
-        const baseRotationX = Math.PI * 0.05; // Even less tilt - make emoji look more upward
-        const baseRotationY = Math.PI * 0.25; // Base side turn
-
-        // Calculate target rotations - REVERSED movements
-        const targetX = baseRotationX - mouse.y * rotationSensitivity; // Pitch (up/down) - REVERSED
-        const targetY = baseRotationY + mouse.x * rotationSensitivity; // Yaw (left/right) - REVERSED
-        const targetZ = 0; // Roll
-
-        // Set rotation using Euler angles with specific order
-        emojiModel.rotation.set(targetX, targetY, targetZ, 'YXZ');
-
-        console.log('Emoji Euler rotation set to:', targetX, targetY, targetZ);
-        console.log('Actual rotation:', emojiModel.rotation.x, emojiModel.rotation.y, emojiModel.rotation.z);
-      }
+      
+      // Update mouse coordinates for emoji tracking
+      mouse.x = (evt.clientX / window.innerWidth) * 2 - 1;
+      mouse.y = -(evt.clientY / window.innerHeight) * 2 + 1;
     }
 
     function onResize() {
