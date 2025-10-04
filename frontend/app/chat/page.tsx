@@ -12,6 +12,7 @@ import { useRouter } from "next/navigation";
 import Dropdown from "@/components/Dropdown";
 
 
+
 export default function ChatPage() {
     const searchParams = useSearchParams();
     const uploadedImageUrl = useChatStore((state) => state.uploadedImageUrl);

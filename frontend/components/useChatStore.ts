@@ -49,194 +49,221 @@ export const useChatStore = create<ChatState>()(
                 set({ sessionId, hasProcessedSession: true });
             },
 
-    connectWebSocket: (sessionId: string) => {
-        return new Promise<void>((resolve, reject) => {
-            // Store the image URL if provided
-            
-            console.log('Connecting to WebSocket...', { sessionId });
-            const ws = new WebSocket(`ws://localhost:8000/ws/chat/${sessionId}`);
-            
-            ws.onopen = () => {
-                console.log('WebSocket connected, sending process_image request');
-                set({ thinking: true, sessionId, ws });
-                
-                // Send process image request
-                const message = {
-                    type: 'process_image',
-                    session_id: sessionId
-                };
-                console.log('Sending message:', message);
-                ws.send(JSON.stringify(message));
-                
-                // Wait a bit for message to be sent before resolving
-                setTimeout(() => {
-                    console.log('Message sent, resolving promise');
-                    resolve();
-                }, 50);
-            };
+            connectWebSocket: (sessionId: string) => {
+                return new Promise<void>((resolve, reject) => {
+                    // Store the image URL if provided
 
-        ws.onmessage = (event) => {
-            const data = JSON.parse(event.data);
-            const state = get();
+                    console.log('Connecting to WebSocket...', { sessionId });
+                    const ws = new WebSocket(`ws://localhost:8000/ws/chat/${sessionId}`);
 
-            if (data.type === 'status') {
-                // Update thinking status
-                set({ thinking: true });
-            } else if (data.type === 'reasoning_chunk' || data.type === 'chat_response_chunk') {
-                // Append to current assistant message (streaming)
-                const updatedText = state.currentAssistantMessage + data.text;
-                set({ currentAssistantMessage: updatedText });
+                    ws.onopen = () => {
+                        console.log('WebSocket connected, sending process_image request');
+                        set({ thinking: true, sessionId, ws });
 
-                // Update or create assistant message
-                const lastMessage = state.messages[state.messages.length - 1];
-                if (lastMessage && lastMessage.role === 'assistant') {
-                    // Update existing message
-                    const updatedMessages = [...state.messages];
-                    updatedMessages[updatedMessages.length - 1] = {
-                        ...lastMessage,
-                        text: updatedText
+                        // Send process image request
+                        const message = {
+                            type: 'process_image',
+                            session_id: sessionId
+                        };
+                        console.log('Sending message:', message);
+                        ws.send(JSON.stringify(message));
+
+                        // Wait a bit for message to be sent before resolving
+                        setTimeout(() => {
+                            console.log('Message sent, resolving promise');
+                            resolve();
+                        }, 50);
                     };
-                    set({ messages: updatedMessages });
-                } else {
-                    // Create new message
-                    const newMessage: Message = {
-                        id: `assistant-${Date.now()}`,
-                        role: 'assistant',
-                        text: updatedText,
-                        ts: Date.now()
+
+                    ws.onmessage = (event) => {
+                        const data = JSON.parse(event.data);
+                        const state = get();
+
+                        if (data.type === 'status') {
+                            // Update thinking status
+                            set({ thinking: true });
+                        } else if (data.type === 'reasoning_chunk' || data.type === 'chat_response_chunk') {
+                            // Append to current assistant message (streaming)
+                            const updatedText = state.currentAssistantMessage + data.text;
+                            set({ currentAssistantMessage: updatedText });
+
+                            // Update or create assistant message
+                            const lastMessage = state.messages[state.messages.length - 1];
+                            if (lastMessage && lastMessage.role === 'assistant') {
+                                // Update existing message
+                                const updatedMessages = [...state.messages];
+                                updatedMessages[updatedMessages.length - 1] = {
+                                    ...lastMessage,
+                                    text: updatedText
+                                };
+                                set({ messages: updatedMessages });
+                            } else {
+                                // Create new message
+                                const newMessage: Message = {
+                                    id: `assistant-${Date.now()}`,
+                                    role: 'assistant',
+                                    text: updatedText,
+                                    ts: Date.now()
+                                };
+                                set({ messages: [...state.messages, newMessage] });
+                            }
+                        } else if (data.type === 'coordinates') {
+                            // Handle coordinates as a separate formatted message
+                            try {
+                                const cleanedText = data.text.replace(/json|`/g, '');
+                                console.log('Cleaned coordinates text:', cleanedText);
+                                const coordinates = JSON.parse(cleanedText);
+                                const formattedCoords = coordinates.map((coord: any, index: number) =>
+                                    `${index + 1}. Latitude: ${coord.latitude}, Longitude: ${coord.longitude}`
+                                ).join('\n');
+
+                                const coordsMessage = `📍 Predicted Coordinates:\n${formattedCoords}`;
+
+                                const newMessage: Message = {
+                                    id: `assistant-${Date.now()}`,
+                                    role: 'assistant',
+                                    text: coordsMessage,
+                                    ts: Date.now()
+                                };
+                                set({ messages: [...state.messages, newMessage] });
+
+                            } catch (e) {
+                                console.error('Failed to parse coordinates:', e);
+                            }
+                        } else if (data.type === 'complete') {
+                            // Analysis complete
+                            console.log('Received complete message, resetting sending and thinking flags');
+
+                            // Clear any pending timeout
+                            const ws = get().ws;
+                            if (ws && (ws as any).sendingTimeout) {
+                                clearTimeout((ws as any).sendingTimeout);
+                                delete (ws as any).sendingTimeout;
+                            }
+
+                            set({ thinking: false, sending: false, currentAssistantMessage: '' });
+                        } else if (data.type === 'error') {
+                            // Handle error
+
+                            // Clear any pending timeout
+                            const ws = get().ws;
+                            if (ws && (ws as any).sendingTimeout) {
+                                clearTimeout((ws as any).sendingTimeout);
+                                delete (ws as any).sendingTimeout;
+                            }
+
+                            const errorMessage: Message = {
+                                id: `error-${Date.now()}`,
+                                role: 'assistant',
+                                text: `Error: ${data.message}`,
+                                ts: Date.now()
+                            };
+                            set({
+                                messages: [...state.messages, errorMessage],
+                                thinking: false,
+                                sending: false,
+                                currentAssistantMessage: ''
+                            });
+                        }
                     };
-                    set({ messages: [...state.messages, newMessage] });
+
+                    ws.onerror = (error) => {
+                        console.error('WebSocket error:', error);
+                        set({ thinking: false, sending: false });
+                        reject(error);
+                    };
+
+                    ws.onclose = (event) => {
+                        console.log('WebSocket closed', {
+                            code: event.code,
+                            reason: event.reason,
+                            wasClean: event.wasClean
+                        });
+                        set({ thinking: false, sending: false, ws: null });
+                    };
+                });
+            },
+
+            disconnectWebSocket: () => {
+                const { ws } = get();
+                if (ws) {
+                    ws.close();
+                    set({ ws: null, thinking: false, sending: false });
                 }
-            } else if (data.type === 'coordinates') {
-                // Handle coordinates as a separate formatted message
+            },
+
+            send: async (text: string) => {
+                const state = get();
+                console.log('Send called, state:', { sending: state.sending, hasWs: !!state.ws, textLength: text.trim().length });
+
+                if (!text.trim() || state.sending || !state.ws) {
+                    console.log('Send blocked:', {
+                        noText: !text.trim(),
+                        sending: state.sending,
+                        noWs: !state.ws
+                    });
+                    return;
+                }
+
+                // Immediately add user message
+                const userMessage: Message = {
+                    id: `user-${Date.now()}`,
+                    role: 'user',
+                    text: text.trim(),
+                    ts: Date.now(),
+                };
+
+                set({
+                    messages: [...state.messages, userMessage],
+                    sending: true,
+                    thinking: true,
+                    currentAssistantMessage: '', // Reset for new response
+                });
+
+                // Add timeout to reset sending flag if no response after 30 seconds
+                const sendingTimeout = setTimeout(() => {
+                    console.warn('Message send timeout - resetting sending flag');
+                    set({ sending: false, thinking: false });
+                }, 30000); // 30 second timeout
+
                 try {
-                    const cleanedText = data.text.replace(/json|`/g, '');
-                    console.log('Cleaned coordinates text:', cleanedText);
-                    const coordinates = JSON.parse(cleanedText);
-                    const formattedCoords = coordinates.map((coord: any, index: number) => 
-                        `${index + 1}. Latitude: ${coord.latitude}, Longitude: ${coord.longitude}`
-                    ).join('\n');
-                    
-                    const coordsMessage = `📍 Predicted Coordinates:\n${formattedCoords}`;
-                    
-                    const newMessage: Message = {
-                        id: `assistant-${Date.now()}`,
-                        role: 'assistant',
-                        text: coordsMessage,
-                        ts: Date.now()
+                    // Get session ID from stored state (backend will construct file path)
+                    const sessionId = state.sessionId;
+
+                    if (!sessionId) {
+                        clearTimeout(sendingTimeout);
+                        throw new Error('No session ID available');
+                    }
+
+                    // Get fresh state to include the user message we just added
+                    const freshState = get();
+
+                    // Send chat message with full history
+                    const chatMessage = {
+                        type: 'chat_message',
+                        text: text.trim(),
+                        session_id: sessionId,
+                        history: freshState.messages.map(msg => ({
+                            role: msg.role,
+                            text: msg.text
+                        }))
                     };
-                    set({ messages: [...state.messages, newMessage] });
-                
-                } catch (e) {
-                    console.error('Failed to parse coordinates:', e);
+
+                    console.log('Sending chat message:', chatMessage);
+                    state.ws.send(JSON.stringify(chatMessage));
+
+                    // Store timeout ID so we can clear it when response arrives
+                    (state.ws as any).sendingTimeout = sendingTimeout;
+                } catch (error) {
+                    console.error('Failed to send message:', error);
+                    clearTimeout(sendingTimeout);
+                    set({ sending: false, thinking: false });
                 }
-            } else if (data.type === 'complete') {
-                // Analysis complete
-                console.log('Received complete message, resetting sending and thinking flags');
-                set({ thinking: false, sending: false, currentAssistantMessage: '' });
-            } else if (data.type === 'error') {
-                // Handle error
-                const errorMessage: Message = {
-                    id: `error-${Date.now()}`,
-                    role: 'assistant',
-                    text: `Error: ${data.message}`,
-                    ts: Date.now()
-                };
-                set({ 
-                    messages: [...state.messages, errorMessage],
-                    thinking: false,
-                    sending: false,
-                    currentAssistantMessage: ''
-                });
-            }
-        };
+            },
 
-            ws.onerror = (error) => {
-                console.error('WebSocket error:', error);
-                set({ thinking: false, sending: false });
-                reject(error);
-            };
-
-            ws.onclose = (event) => {
-                console.log('WebSocket closed', { 
-                    code: event.code, 
-                    reason: event.reason, 
-                    wasClean: event.wasClean 
-                });
-                set({ thinking: false, sending: false, ws: null });
-            };
-        });
-    },
-
-    disconnectWebSocket: () => {
-        const { ws } = get();
-        if (ws) {
-            ws.close();
-            set({ ws: null, thinking: false, sending: false });
-        }
-    },
-
-    send: async (text: string) => {
-        const state = get();
-        console.log('Send called, state:', { sending: state.sending, hasWs: !!state.ws, textLength: text.trim().length });
-        
-        if (!text.trim() || state.sending || !state.ws) {
-            console.log('Send blocked:', { 
-                noText: !text.trim(), 
-                sending: state.sending, 
-                noWs: !state.ws 
-            });
-            return;
-        }
-
-        // Immediately add user message
-        const userMessage: Message = {
-            id: `user-${Date.now()}`,
-            role: 'user',
-            text: text.trim(),
-            ts: Date.now(),
-        };
-
-        set({
-            messages: [...state.messages, userMessage],
-            sending: true,
-            thinking: true,
-            currentAssistantMessage: '', // Reset for new response
-        });
-
-        try {
-            // Get session ID from stored state (backend will construct file path)
-            const sessionId = state.sessionId;
-
-            if (!sessionId) {
-                throw new Error('No session ID available');
-            }
-
-            // Get fresh state to include the user message we just added
-            const freshState = get();
-            
-            // Send chat message with full history
-            const chatMessage = {
-                type: 'chat_message',
-                text: text.trim(),
-                session_id: sessionId,
-                history: freshState.messages.map(msg => ({
-                    role: msg.role,
-                    text: msg.text
-                }))
-            };
-
-            console.log('Sending chat message:', chatMessage);
-            state.ws.send(JSON.stringify(chatMessage));
-        } catch (error) {
-            console.error('Failed to send message:', error);
-            set({ sending: false, thinking: false });
-        }
-    },
-
-    clear: () => {
-        set({ messages: [], currentAssistantMessage: '', uploadedImageUrl: null, hasProcessedSession: false });
-    },
+            clear: () => {
+                set({ messages: [], currentAssistantMessage: '', uploadedImageUrl: null, hasProcessedSession: false });
+            },
         }),
         {
             name: 'rainbolt-chat-storage',
