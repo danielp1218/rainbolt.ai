@@ -106,47 +106,71 @@ export default function Home() {
       </section>
 
       {/* About Section */}
-      <section id="about" data-section-id="2" className="relative h-screen snap-start from-black/90 to-black z-10">
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="container mx-auto px-4 py-16">
-            <h2 className="text-4xl font-bold text-white mb-12 text-center">
-              About Us
+      <section id="about" data-section-id="2" className="relative h-screen snap-start">
+        <div className="absolute inset-0 flex items-center justify-end pr-16">
+          <div className="max-w-2xl p-8 bg-white/5 rounded-lg backdrop-blur-sm">
+            <h2 className="text-4xl font-bold text-white mb-8">
+              About rainbolt.ai
             </h2>
-            <div className="max-w-3xl mx-auto text-white/80 text-center">
-              <p className="mb-6">
-                Rainbolt AI is at the forefront of artificial intelligence innovation, developing
-                cutting-edge solutions that transform industries and empower businesses.
+            <div className="text-white/80 space-y-6">
+              <p>
+                Rainbolt.ai is inspired by the incredible work of Rainbolt (Trevor Rainbolt), a creator known for his lightning-fast skills in identifying geographical locations from single images, with the red smile emoji as his iconic symbol.
               </p>
               <p>
-                With our advanced AI technologies, we're making the future of intelligent automation
-                accessible to everyone.
-              </p>
+               Just as Rainbolt helps people uncover long-lost locations across the world, Rainbolt.ai empowers users to learn geography in an engaging way. It also supports meaningful challenges, from helping families reconnect to discovering places of personal significance.               </p>
+            </div>
+            
+            {/* Rainbolt Images */}
+            <div className="flex gap-4 mt-8">
+              <div className="flex-1">
+                <img 
+                  src="/rainbolt_cool.jpg" 
+                  alt="Rainbolt Cool" 
+                  className="w-full h-32 object-cover rounded-lg bg-white/10"
+                />
+                <p className="text-white/60 text-sm mt-2 text-center">Trevor Rainbolt</p>
+              </div>
+              <div className="flex-1">
+                <img 
+                  src="/rainbolt_staring.webp" 
+                  alt="Rainbolt Staring" 
+                  className="w-full h-32 object-cover rounded-lg bg-white/10"
+                />
+                <p className="text-white/60 text-sm mt-2 text-center">Rainbolt Focused</p>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
       {/* Team Section */}
-      <section id="team" data-section-id="3" className="relative h-screen snap-start flex items-center justify-center">
-        <div className="container mx-auto px-4">
-          <h2 className="text-5xl font-bold text-white mb-12 text-center">
-            Meet Our Team
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-            <div className="p-6 bg-white/5 rounded-lg backdrop-blur-sm text-center">
-              <div className="w-24 h-24 rounded-full bg-white/10 mx-auto mb-4"></div>
-              <h3 className="text-xl font-bold text-white mb-2">John Doe</h3>
-              <p className="text-white/80">AI Research Lead</p>
-            </div>
-            <div className="p-6 bg-white/5 rounded-lg backdrop-blur-sm text-center">
-              <div className="w-24 h-24 rounded-full bg-white/10 mx-auto mb-4"></div>
-              <h3 className="text-xl font-bold text-white mb-2">Jane Smith</h3>
-              <p className="text-white/80">ML Engineer</p>
-            </div>
-            <div className="p-6 bg-white/5 rounded-lg backdrop-blur-sm text-center">
-              <div className="w-24 h-24 rounded-full bg-white/10 mx-auto mb-4"></div>
-              <h3 className="text-xl font-bold text-white mb-2">Mike Johnson</h3>
-              <p className="text-white/80">Data Scientist</p>
+      <section id="team" data-section-id="3" className="relative h-screen snap-start">
+        <div className="absolute inset-0 flex items-center justify-start pl-16">
+          <div className="max-w-2xl">
+            <h2 className="text-5xl font-bold text-white mb-12">
+              Meet Our Team
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="p-6 bg-white/5 rounded-lg backdrop-blur-sm text-center">
+                <div className="w-20 h-20 rounded-full bg-white/10 mx-auto mb-4"></div>
+                <h3 className="text-xl font-bold text-white mb-2">John Doe</h3>
+                <p className="text-white/80">AI Research Lead</p>
+              </div>
+              <div className="p-6 bg-white/5 rounded-lg backdrop-blur-sm text-center">
+                <div className="w-20 h-20 rounded-full bg-white/10 mx-auto mb-4"></div>
+                <h3 className="text-xl font-bold text-white mb-2">Jane Smith</h3>
+                <p className="text-white/80">ML Engineer</p>
+              </div>
+              <div className="p-6 bg-white/5 rounded-lg backdrop-blur-sm text-center">
+                <div className="w-20 h-20 rounded-full bg-white/10 mx-auto mb-4"></div>
+                <h3 className="text-xl font-bold text-white mb-2">Mike Johnson</h3>
+                <p className="text-white/80">Data Scientist</p>
+              </div>
+              <div className="p-6 bg-white/5 rounded-lg backdrop-blur-sm text-center">
+                <div className="w-20 h-20 rounded-full bg-white/10 mx-auto mb-4"></div>
+                <h3 className="text-xl font-bold text-white mb-2">Sarah Wilson</h3>
+                <p className="text-white/80">Product Manager</p>
+              </div>
             </div>
           </div>
         </div>

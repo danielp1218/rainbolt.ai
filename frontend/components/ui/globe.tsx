@@ -24,6 +24,8 @@ export default function EarthScene({ markers = [], currentSection = 0 }: EarthSc
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
   const targetPosition = useRef(new THREE.Vector3(7, 0, 4));
   const targetLookAt = useRef(new THREE.Vector3(-7.7, 0, 0));
+  const currentSectionRef = useRef(currentSection);
+  const targetRotationY = useRef(0);
 
   // Add Waterloo as a default marker
 const defaultMarkers = [
@@ -454,7 +456,15 @@ intensity = pow(intensity, 1.5); // Reduced exponent for larger middle gradient
       }
 
       renderer.render(scene, camera);
-      globeGroup.rotation.y += 0.001;
+      
+      // Handle rotation: either animate to target rotation (Team section) or continue normal rotation
+      if (currentSectionRef.current === 3) {
+        // Fast rotate to bring Waterloo to the front
+        globeGroup.rotation.y += (targetRotationY.current - globeGroup.rotation.y) * 0.15;
+      } else {
+        // Normal continuous rotation for other sections
+        globeGroup.rotation.y += 0.001;
+      }
       
       // Animate streak particles (head and tail movement)
       streakParticles.forEach((streak) => {
@@ -530,14 +540,41 @@ intensity = pow(intensity, 1.5); // Reduced exponent for larger middle gradient
     const positions: Record<number, { position: [number, number, number]; lookAt: [number, number, number] }> = {
       0: { position: [7, 0, 4], lookAt: [-7.7, 0, 0] },        // Hero - default view
       1: { position: [6, -4, 2], lookAt: [-7.7, 1, -0.85] },      // Features - globe at bottom, camera lower
-      2: { position: [-10, 0, 0], lookAt: [-7.7, 0, 0] },      // About - left angle
-      3: { position: [8, 0, -2], lookAt: [-7.7, 0, 0] },       // Team - bottom angle
+      2: { position: [12, 0, -24], lookAt: [-7.7, 0, 0] },       // About - globe on left, camera further away
+      3: { position: [-2, 1, 1], lookAt: [-7.7, 0, 0] },       // Team - camera much closer, globe on right, zoom on Waterloo
       4: { position: [8, 0, -8], lookAt: [-7.7, 0, 0] },       // Contact - top view
     };
 
     const config = positions[currentSection] || positions[0];
-    targetPosition.current.set(...config.position);
-    targetLookAt.current.set(...config.lookAt);
+    
+    // Special handling for Team section (3) - calculate Waterloo position for lookAt
+    if (currentSection === 3) {
+      // Calculate Waterloo's position on the globe (lat: 43.4643, long: -80.5204)
+      const [waterlooX, waterlooY, waterlooZ] = latLongToVector3(43.4643, -80.5204, 1);
+      // Offset from globe center (-7.7, 0, 0)
+      const waterlooWorldX = waterlooX - 7.7;
+      const waterlooWorldY = waterlooY;
+      const waterlooWorldZ = waterlooZ;
+      
+      // Calculate rotation needed to bring Waterloo to the front
+      // Waterloo longitude is -80.5204°, we need to rotate the globe to bring this longitude to the front
+      // Adding extra rotation to account for globe's initial orientation
+      const waterlooRotation = (80.5204 + 120) * (Math.PI / 180); // Adding 120° for more rotation
+      targetRotationY.current = waterlooRotation;
+      
+      targetPosition.current.set(...config.position);
+      targetLookAt.current.set(waterlooWorldX, waterlooWorldY, waterlooWorldZ);
+    } else {
+      // Reset rotation for other sections
+      targetRotationY.current = 0;
+      targetPosition.current.set(...config.position);
+      targetLookAt.current.set(...config.lookAt);
+    }
+  }, [currentSection]);
+
+  // Update currentSection ref for use in animation loop
+  useEffect(() => {
+    currentSectionRef.current = currentSection;
   }, [currentSection]);
 
   return <div ref={mountRef} style={{ width: "100%", height: "100%" }} className="absolute inset-0" />;
