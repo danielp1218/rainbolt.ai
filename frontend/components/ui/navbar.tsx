@@ -48,6 +48,11 @@ export function Navbar({ currentSection }: NavbarProps) {
             <NavigationMenu>
               <NavigationMenuList className="flex gap-8">
                 <NavigationMenuItem>
+                  <Link href="/learning" className="text-white/80 hover:text-white transition-colors">
+                    Learning
+                  </Link>
+                </NavigationMenuItem>
+                <NavigationMenuItem>
                   <Link href="#features" className="text-white/80 hover:text-white transition-colors">
                     Features
                   </Link>
