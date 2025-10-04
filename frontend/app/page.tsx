@@ -1,103 +1,190 @@
-import Image from "next/image";
+"use client";
+
+import { useEffect, useState } from "react";
+import { Navbar } from "@/components/ui/navbar";
+import { Button } from "@/components/ui/button";
+import EarthScene from "@/components/ui/globe";
+
+import "./glow.css";
 
 export default function Home() {
-  return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const [currentSection, setCurrentSection] = useState(0);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  const handleIntersection = (entries: IntersectionObserverEntry[]) => {
+    entries.forEach((entry) => {
+      if (entry.isIntersecting) {
+        const sectionId = parseInt(entry.target.getAttribute('data-section-id') || '0');
+        setCurrentSection(sectionId);
+      }
+    });
+  };
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(handleIntersection, {
+      threshold: 0.3, // Trigger when section is 30% visible
+      rootMargin: '-80px 0px' // Adjust for navbar height
+    });
+
+    // Observe all sections
+    document.querySelectorAll('section[data-section-id]').forEach((section) => {
+      observer.observe(section);
+    });
+
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <div className="relative h-screen overflow-y-auto snap-mandatory snap-y scroll-smooth">
+      {/* Background Elements */}
+      <div className="fixed inset-0 z-0">
+        <EarthScene 
+          markers={[]} 
+        />
+        {/* Vignette Effect */}
+        <div className="vignette" />
+      </div>
+      
+      {/* Navigation */}
+      <Navbar currentSection={currentSection} />
+
+      {/* Hero Section with Earth */}
+      <section data-section-id="0" className="relative h-screen snap-always snap-start">
+        <div className="absolute inset-0 pointer-events-none" />
+        <div className="absolute inset-0 flex items-center z-[60]">
+          <div className="container mx-auto">
+            <div className="max-w-3xl px-4">
+              <h1 className="text-7xl font-bold mb-8 leading-tight text-left flex flex-wrap gap-x-4 relative will-change-transform">
+                <span className="text-white font-sans [text-shadow:0_0_10px_#fff,0_0_20px_#00a3ff] [animation:textGlow_3s_ease-in-out_infinite_alternate] will-change-transform">
+                  Learn to Explore
+                </span>
+                <span className="text-white font-sans [text-shadow:0_0_10px_#fff,0_0_20px_#ff1a1a,0_0_30px_#800080] [animation:textGlowRed_3s_ease-in-out_infinite_alternate] will-change-transform">
+                  with rainbolt.ai
+                </span>
+              </h1>
+              <p className="text-2xl text-white/80 text-left max-w-xl">
+                Transforming ideas into intelligent solutions through cutting-edge artificial intelligence and machine learning.
+              </p>
+              <div className="mt-8 flex gap-4">
+                <Button size="lg" className="bg-white text-black hover:bg-white/90">
+                  Get Started
+                </Button>
+              </div>
+            </div>
+          </div>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+      </section>
+
+      {/* Features Section */}
+      <section id="features" data-section-id="1" className="relative h-screen snap-always snap-start bg-black/90">
+        <div className="absolute inset-0 flex items-center">
+          <div className="container mx-auto px-4">
+            <h2 className="text-4xl font-bold text-white mb-12 text-center">
+              Features
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-white/80">
+              <div className="p-6 bg-white/5 rounded-lg backdrop-blur-sm">
+                <h3 className="text-xl font-bold mb-4">Advanced AI</h3>
+                <p>State-of-the-art artificial intelligence solutions for your business needs.</p>
+              </div>
+              <div className="p-6 bg-white/5 rounded-lg backdrop-blur-sm">
+                <h3 className="text-xl font-bold mb-4">Machine Learning</h3>
+                <p>Custom machine learning models tailored to your specific requirements.</p>
+              </div>
+              <div className="p-6 bg-white/5 rounded-lg backdrop-blur-sm">
+                <h3 className="text-xl font-bold mb-4">Data Analytics</h3>
+                <p>Comprehensive data analysis and visualization tools.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* About Section */}
+      <section id="about" data-section-id="2" className="relative h-screen snap-always snap-start bg-gradient-to-b from-black/90 to-black z-10">
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="container mx-auto px-4 py-16">
+            <h2 className="text-4xl font-bold text-white mb-12 text-center">
+              About Us
+            </h2>
+            <div className="max-w-3xl mx-auto text-white/80 text-center">
+              <p className="mb-6">
+                Rainbolt AI is at the forefront of artificial intelligence innovation, developing
+                cutting-edge solutions that transform industries and empower businesses.
+              </p>
+              <p>
+                With our advanced AI technologies, we're making the future of intelligent automation
+                accessible to everyone.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Team Section */}
+      <section id="team" data-section-id="3" className="relative h-screen snap-always snap-start bg-black/90 flex items-center justify-center">
+        <div className="container mx-auto px-4">
+          <h2 className="text-5xl font-bold text-white mb-12 text-center">
+            Meet Our Team
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+            <div className="p-6 bg-white/5 rounded-lg backdrop-blur-sm text-center">
+              <div className="w-24 h-24 rounded-full bg-white/10 mx-auto mb-4"></div>
+              <h3 className="text-xl font-bold text-white mb-2">John Doe</h3>
+              <p className="text-white/80">AI Research Lead</p>
+            </div>
+            <div className="p-6 bg-white/5 rounded-lg backdrop-blur-sm text-center">
+              <div className="w-24 h-24 rounded-full bg-white/10 mx-auto mb-4"></div>
+              <h3 className="text-xl font-bold text-white mb-2">Jane Smith</h3>
+              <p className="text-white/80">ML Engineer</p>
+            </div>
+            <div className="p-6 bg-white/5 rounded-lg backdrop-blur-sm text-center">
+              <div className="w-24 h-24 rounded-full bg-white/10 mx-auto mb-4"></div>
+              <h3 className="text-xl font-bold text-white mb-2">Mike Johnson</h3>
+              <p className="text-white/80">Data Scientist</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Contact Section */}
+      <section id="contact" data-section-id="4" className="relative h-screen snap-always snap-start bg-black z-10">
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="container mx-auto px-4 py-16">
+            <h2 className="text-4xl font-bold text-white mb-12 text-center">
+              Get in Touch
+            </h2>
+            <div className="max-w-md mx-auto">
+              <div className="bg-white/10 p-8 rounded-lg backdrop-blur-sm">
+                <form className="space-y-6">
+                  <div>
+                    <label className="block text-white mb-2">Name</label>
+                    <input
+                      type="text"
+                      className="w-full px-4 py-2 bg-black/50 text-white rounded border border-white/20"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-white mb-2">Email</label>
+                    <input
+                      type="email"
+                      className="w-full px-4 py-2 bg-black/50 text-white rounded border border-white/20"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-white mb-2">Message</label>
+                    <textarea
+                      className="w-full px-4 py-2 bg-black/50 text-white rounded border border-white/20 h-32"
+                    ></textarea>
+                  </div>
+                  <Button type="submit" className="w-full bg-white text-black hover:bg-white/90">
+                    Send Message
+                  </Button>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
     </div>
   );
 }

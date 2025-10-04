@@ -1,0 +1,45 @@
+@layer base {
+  .vignette {
+    position: fixed;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    background: radial-gradient(
+      ellipse at center,
+      transparent 0%,
+      rgba(0, 0, 0, 0.4) 20%,
+      rgba(0, 0, 0, 0.95) 100%
+    );
+  }
+}
+
+
+@layer animations {
+  @keyframes textGlow {
+    0%, 100% {
+      text-shadow: 
+        0 0 10px #fff,
+        0 0 20px #00a3ff;
+    }
+    50% {
+      text-shadow: 
+        0 0 15px #fff,
+        0 0 25px #00ccff;
+    }
+  }
+
+  @keyframes textGlowRed {
+    0%, 100% {
+      text-shadow: 
+        0 0 10px #fff,
+        0 0 20px #ff1a1a,
+        0 0 30px #800080;
+    }
+    50% {
+      text-shadow: 
+        0 0 15px #fff,
+        0 0 25px #ff3333,
+        0 0 35px #990099;
+    }
+  }
+}
