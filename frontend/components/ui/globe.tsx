@@ -146,10 +146,20 @@ export default function EarthScene({ markers = [] }: EarthSceneProps) {
           console.log('Using head object:', emojiHead);
         }
         
-        // Add a bright point light specifically for the emoji
-        const emojiLight = new THREE.PointLight(0xffffff, 3, 5);
+        // Add bright point lights specifically for the emoji
+        const emojiLight = new THREE.PointLight(0xffffff, 1, 100); // Increased intensity and range
         emojiLight.position.copy(emojiModel.position);
+        emojiLight.position.y += 1; // Move light slightly above emoji
         scene.add(emojiLight);
+        
+        // Add a second fill light from the front
+        const emojiFillLight = new THREE.PointLight(0xffffff, 15, 100);
+        emojiFillLight.position.set(
+          emojiModel.position.x + 2, // In front of emoji
+          emojiModel.position.y,
+          emojiModel.position.z + 2
+        );
+        scene.add(emojiFillLight);
         
         console.log('Adding emoji model to SCENE at position:', emojiModel.position);
         console.log('GlobeGroup position:', globeGroup.position);
@@ -380,7 +390,7 @@ const fragmentShader = `
         
         // Create Euler angles with YXZ order (yaw, pitch, roll)
         const rotationSensitivity = 0.8;
-        const baseRotationX = Math.PI * 0.2; // Reduced base tilt - look more forward/up instead of down
+        const baseRotationX = Math.PI * 0.05; // Even less tilt - make emoji look more upward
         const baseRotationY = Math.PI * 0.25; // Base side turn
         
         // Calculate target rotations - REVERSED movements
