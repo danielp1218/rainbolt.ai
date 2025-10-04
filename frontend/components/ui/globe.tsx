@@ -51,6 +51,11 @@ export default function EarthScene({ markers = [] }: EarthSceneProps) {
     const pointerPos = new THREE.Vector2();
     const globeUV = new THREE.Vector2();
     
+    // Mouse tracking for emoji lookAt calculations
+    const mouse = new THREE.Vector2();
+    const emojiRaycaster = new THREE.Raycaster();
+    const targetPoint = new THREE.Vector3();
+    
     // Store reference to emoji for mouse following
     let emojiModel: THREE.Group | null = null;
     let emojiHead: THREE.Object3D | null = null;
@@ -107,10 +112,9 @@ export default function EarthScene({ markers = [] }: EarthSceneProps) {
         // Make it MUCH bigger so we can definitely see it
         emojiModel.scale.set(0.8, 0.8, 0.8);
         
-        // Set initial rotation to face the right direction
-        emojiModel.rotation.x = Math.PI * 0; // Tilt forward slightly (18 degrees)
-        emojiModel.rotation.y = Math.PI * 0.25; // Rotate 45 degrees horizontally
-        emojiModel.rotation.z = Math.PI * 0; // No roll
+        // Store the original rotation to account for model facing -Y in Blender
+        // Don't apply fixed rotation - let lookAt() handle full orientation
+        emojiModel.rotation.set(0, 0, 0);
         
         // Enable rotation animation
         
@@ -153,7 +157,7 @@ export default function EarthScene({ markers = [] }: EarthSceneProps) {
         scene.add(emojiLight);
         
         // Add a second fill light from the front
-        const emojiFillLight = new THREE.PointLight(0xffffff, 15, 100);
+        const emojiFillLight = new THREE.PointLight(0xffffff, 25, 100);
         emojiFillLight.position.set(
           emojiModel.position.x + 2, // In front of emoji
           emojiModel.position.y,
@@ -379,30 +383,32 @@ const fragmentShader = `
         -(evt.clientY / window.innerHeight) * 2 + 1
       );
       
-      // Use Euler angles with specific rotation order for better control
+      // Update mouse for emoji tracking - get cursor 3D position and direction
       if (emojiModel) {
         // Convert mouse to normalized device coordinates
-        const mouse = new THREE.Vector2();
         mouse.x = (evt.clientX / window.innerWidth) * 2 - 1;
         mouse.y = -(evt.clientY / window.innerHeight) * 2 + 1;
         
+        // Cast ray from camera through mouse position
+        emojiRaycaster.setFromCamera(mouse, camera);
+        
+        // Get cursor point in 3D space at distance 1 from camera
+        const cursorPoint = new THREE.Vector3();
+        emojiRaycaster.ray.at(1, cursorPoint); // 1 unit out from camera
+        
+        // Calculate direction from emoji to cursor point
+        const direction = cursorPoint.clone().sub(emojiModel.position).normalize();
+        
+        // Create target point by moving from emoji position in direction of cursor
+        const targetPoint = emojiModel.position.clone().add(direction);
+        
+        // Make emoji look at the target point (toward cursor)
+        emojiModel.lookAt(targetPoint);
+        
         console.log('Mouse:', mouse.x, mouse.y);
-        
-        // Create Euler angles with YXZ order (yaw, pitch, roll)
-        const rotationSensitivity = 0.8;
-        const baseRotationX = Math.PI * 0.05; // Even less tilt - make emoji look more upward
-        const baseRotationY = Math.PI * 0.25; // Base side turn
-        
-        // Calculate target rotations - REVERSED movements
-        const targetX = baseRotationX - mouse.y * rotationSensitivity; // Pitch (up/down) - REVERSED
-        const targetY = baseRotationY + mouse.x * rotationSensitivity; // Yaw (left/right) - REVERSED
-        const targetZ = 0; // Roll
-        
-        // Set rotation using Euler angles with specific order
-        emojiModel.rotation.set(targetX, targetY, targetZ, 'YXZ');
-        
-        console.log('Emoji Euler rotation set to:', targetX, targetY, targetZ);
-        console.log('Actual rotation:', emojiModel.rotation.x, emojiModel.rotation.y, emojiModel.rotation.z);
+        console.log('Cursor point (1 unit out):', cursorPoint.x, cursorPoint.y, cursorPoint.z);
+        console.log('Direction vector:', direction.x, direction.y, direction.z);
+        console.log('Target point:', targetPoint.x, targetPoint.y, targetPoint.z);
       }
     }
 
