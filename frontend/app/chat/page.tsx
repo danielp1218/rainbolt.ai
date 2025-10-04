@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import SimpleGlobe from "@/components/ui/simple-globe";
 import { ChatHeader } from "@/components/ChatHeader";
@@ -9,12 +9,14 @@ import { ChatComposer } from "@/components/ChatComposer";
 import { useChatStore } from "@/components/useChatStore";
 import { ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
+import Dropdown from "@/components/Dropdown";
 
 
 export default function ChatPage() {
     const searchParams = useSearchParams();
     const uploadedImageUrl = useChatStore((state) => state.uploadedImageUrl);
-    const router = useRouter()
+    const router = useRouter();
+    const [collapsibleOpen, setCollapsibleOpen] = useState(false);
 
     // Connect WebSocket when page mounts with session info
     useEffect(() => {
@@ -78,8 +80,12 @@ export default function ChatPage() {
                 focus:outline-none focus:ring-2 focus:ring-white/50">
                 <ArrowLeft className="w-4 h-4" />
                 <span>Back to Home</span>
-
             </button>
+
+            {/* Dropdown Component */}
+            <div className="absolute top-24 left-6 z-50">
+                <Dropdown />
+            </div>
 
             {/* Fixed Chat Panel - Right Side */}
             <div className="absolute top-0 right-0 bottom-0 w-[420px] flex flex-col bg-black/95 border-l border-white/10 shadow-2xl">
