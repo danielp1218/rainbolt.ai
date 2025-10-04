@@ -39,13 +39,13 @@ export default function Home() {
     <div className="relative h-screen overflow-y-auto snap-mandatory snap-y scroll-smooth">
       {/* Background Elements */}
       <div className="fixed inset-0 z-0">
-        <EarthScene 
-          markers={[]} 
+        <EarthScene
+          markers={[]}
         />
         {/* Vignette Effect */}
         <div className="vignette" />
       </div>
-      
+
       {/* Navigation */}
       <Navbar currentSection={currentSection} />
 
