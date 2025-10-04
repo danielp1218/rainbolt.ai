@@ -36,11 +36,12 @@ export default function Home() {
   }, []);
 
   return (
-    <div className="relative h-screen overflow-y-auto snap-mandatory snap-y scroll-smooth">
+    <div className="relative h-screen overflow-y-auto snap-mandatory scroll-smooth">
       {/* Background Elements */}
       <div className="fixed inset-0 z-0">
         <EarthScene
           markers={[]}
+          currentSection={currentSection}
         />
         {/* Vignette Effect */}
         <div className="vignette" />
@@ -56,7 +57,7 @@ export default function Home() {
       </div>
 
       {/* Hero Section with Earth */}
-      <section data-section-id="0" className="relative h-screen snap-always snap-start">
+      <section data-section-id="0" className="relative h-screen">
         <div className="absolute inset-0 pointer-events-none" />
         <div className="absolute inset-0 flex items-center z-[60]">
           <div className="container mx-auto">
@@ -76,7 +77,7 @@ export default function Home() {
                 <Button size="lg" className="bg-white text-black hover:bg-white/90" asChild>
                   <a href="/chat">Try Chat Interface</a>
                 </Button>
-                <Button size="lg" variant="outline" className="border-white/20 text-white hover:bg-white/10">
+                <Button size="lg" variant="outline" className="border-white/20 text-black hover:bg-white/10">
                   Learn More
                 </Button>
               </div>
@@ -86,7 +87,7 @@ export default function Home() {
       </section>
 
       {/* Features Section */}
-      <section id="features" data-section-id="1" className="relative h-screen snap-always snap-start bg-black/90">
+      <section id="features" data-section-id="1" className="relative h-screen snap-always snap-start">
         <div className="absolute inset-0 flex items-center">
           <div className="container mx-auto px-4">
             <h2 className="text-4xl font-bold text-white mb-12 text-center">
@@ -111,7 +112,7 @@ export default function Home() {
       </section>
 
       {/* About Section */}
-      <section id="about" data-section-id="2" className="relative h-screen snap-always snap-start bg-gradient-to-b from-black/90 to-black z-10">
+      <section id="about" data-section-id="2" className="relative h-screen snap-always snap-start from-black/90 to-black z-10">
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="container mx-auto px-4 py-16">
             <h2 className="text-4xl font-bold text-white mb-12 text-center">
@@ -132,7 +133,7 @@ export default function Home() {
       </section>
 
       {/* Team Section */}
-      <section id="team" data-section-id="3" className="relative h-screen snap-always snap-start bg-black/90 flex items-center justify-center">
+      <section id="team" data-section-id="3" className="relative h-screen snap-always snap-start flex items-center justify-center">
         <div className="container mx-auto px-4">
           <h2 className="text-5xl font-bold text-white mb-12 text-center">
             Meet Our Team
@@ -158,7 +159,7 @@ export default function Home() {
       </section>
 
       {/* Contact Section */}
-      <section id="contact" data-section-id="4" className="relative h-screen snap-always snap-start bg-black z-10">
+      <section id="contact" data-section-id="4" className="relative h-screen snap-always snap-start">
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="container mx-auto px-4 py-16">
             <h2 className="text-4xl font-bold text-white mb-12 text-center">
