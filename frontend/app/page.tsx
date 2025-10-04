@@ -50,12 +50,6 @@ export default function Home() {
       {/* Navigation */}
       <Navbar currentSection={currentSection} />
 
-      {/* Chat Overlay Layer - Above everything, pointer-events managed per component */}
-      <div className="fixed inset-0 z-[100] pointer-events-none">
-        <ChatLauncher />
-        <ChatPanel />
-      </div>
-
       {/* Hero Section with Earth */}
       <section data-section-id="0" className="relative h-screen snap-start">
         <div className="absolute inset-0 pointer-events-none" />

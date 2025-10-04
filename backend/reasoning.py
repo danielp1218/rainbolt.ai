@@ -37,7 +37,7 @@ def think(image_matches: Dict, features: Dict, image: Image) -> str:
     prompt = f"""You are a geography expert analyzing an image to find coordinates based on visual features and similar location matches. 
 
             GIVEN INFORMATION:
-            Closest Visual Matches:
+            Closest Visual Matches, images closest to the input image from a database of geotagged images:
             {visual_match}
 
             Features Detected in Image:
@@ -52,7 +52,7 @@ def think(image_matches: Dict, features: Dict, image: Image) -> str:
             4. Display coordinates at the end.
             5. State estimated accuracy, and justify it.
 
-            Write your response in a digestible format, using bullet points or numbered lists where appropriate. Be concise as possible while ensuring clarity and completeness in your reasoning.
+            Write your response in a digestible format, using bullet points or numbered lists where appropriate. Do not use markdown formatting. Be concise as possible while ensuring clarity and completeness in your reasoning.
 """
 
     
@@ -87,5 +87,60 @@ def estimate_coordinates(reasoning) -> tuple[float, float]:
             Format your response as a JSON array of objects, where each object contains "latitude" and "longitude" keys. Ensure the coordinates are in decimal format.
             """
 
-    stream = model.stream(prompt)
+    response = model.invoke(prompt)
+    return response.content
+
+def chat_with_context(user_message: str, conversation_history: str, image_matches: Dict, features: Dict, image: Image):
+    """
+    Handle follow-up questions with full conversation context
+    """
+    visual_match = ""
+    for match in image_matches:
+        latitude = match['metadata']['latitude']
+        longitude = match['metadata']['longitude']
+        score = match['score']
+        visual_match += f"(Latitude: {latitude}, Longitude: {longitude}) - Score: {score}\n"
+
+    features_match = ""
+    for match in features:
+        if match['score'] < FEATURE_THRESHOLD:
+            continue
+        text = match['metadata']['text']
+        score = match['score']
+        features_match += f"(Description of feature: {text}) - Score: {score}\n"
+
+    prompt = f"""You are a geography expert helping analyze this image to determine its location.
+
+CONTEXT INFORMATION:
+Closest Visual Matches (geotagged images from database):
+{visual_match}
+
+Features Detected in Image:
+{features_match}
+
+{conversation_history}
+
+USER QUESTION: {user_message}
+
+Provide a helpful, educational response to the user's question. Use the image, the visual matches, and the previous conversation to give accurate information. Be concise and clear. Do not use markdown formatting."""
+
+    # Convert PIL Image to base64
+    buffered = io.BytesIO()
+    image.save(buffered, format=image.format or "JPEG")
+    img_base64 = base64.b64encode(buffered.getvalue()).decode()
+    
+    # Create multimodal message
+    from langchain_core.messages import HumanMessage
+    
+    message = HumanMessage(
+        content=[
+            {"type": "text", "text": prompt},
+            {
+                "type": "image_url",
+                "image_url": f"data:image/jpeg;base64,{img_base64}"
+            }
+        ]
+    )
+    
+    stream = model.stream([message])
     return stream

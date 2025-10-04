@@ -21,7 +21,7 @@ type ChatState = {
     send: (text: string) => Promise<void>;
     toggle: (value?: boolean) => void;
     clear: () => void;
-    connectWebSocket: (sessionId: string, filePath: string, imageUrl?: string) => Promise<void>;
+    connectWebSocket: (sessionId: string) => Promise<void>;
     disconnectWebSocket: () => void;
     markSessionProcessed: (sessionId: string) => void;
 };
@@ -49,14 +49,11 @@ export const useChatStore = create<ChatState>()(
                 set({ sessionId, hasProcessedSession: true });
             },
 
-    connectWebSocket: (sessionId: string, filePath: string, imageUrl?: string) => {
+    connectWebSocket: (sessionId: string) => {
         return new Promise<void>((resolve, reject) => {
             // Store the image URL if provided
-            if (imageUrl) {
-                set({ uploadedImageUrl: imageUrl });
-            }
             
-            console.log('Connecting to WebSocket...', { sessionId, filePath });
+            console.log('Connecting to WebSocket...', { sessionId });
             const ws = new WebSocket(`ws://localhost:8000/ws/chat/${sessionId}`);
             
             ws.onopen = () => {
@@ -66,7 +63,7 @@ export const useChatStore = create<ChatState>()(
                 // Send process image request
                 const message = {
                     type: 'process_image',
-                    file_path: filePath
+                    session_id: sessionId
                 };
                 console.log('Sending message:', message);
                 ws.send(JSON.stringify(message));
@@ -85,8 +82,8 @@ export const useChatStore = create<ChatState>()(
             if (data.type === 'status') {
                 // Update thinking status
                 set({ thinking: true });
-            } else if (data.type === 'reasoning_chunk' || data.type === 'coordinates_chunk') {
-                // Append to current assistant message
+            } else if (data.type === 'reasoning_chunk' || data.type === 'chat_response_chunk') {
+                // Append to current assistant message (streaming)
                 const updatedText = state.currentAssistantMessage + data.text;
                 set({ currentAssistantMessage: updatedText });
 
@@ -109,6 +106,29 @@ export const useChatStore = create<ChatState>()(
                         ts: Date.now()
                     };
                     set({ messages: [...state.messages, newMessage] });
+                }
+            } else if (data.type === 'coordinates') {
+                // Handle coordinates as a separate formatted message
+                try {
+                    const cleanedText = data.text.replace(/json|`/g, '');
+                    console.log('Cleaned coordinates text:', cleanedText);
+                    const coordinates = JSON.parse(cleanedText);
+                    const formattedCoords = coordinates.map((coord: any, index: number) => 
+                        `${index + 1}. Latitude: ${coord.latitude}, Longitude: ${coord.longitude}`
+                    ).join('\n');
+                    
+                    const coordsMessage = `📍 Predicted Coordinates:\n${formattedCoords}`;
+                    
+                    const newMessage: Message = {
+                        id: `assistant-${Date.now()}`,
+                        role: 'assistant',
+                        text: coordsMessage,
+                        ts: Date.now()
+                    };
+                    set({ messages: [...state.messages, newMessage] });
+                
+                } catch (e) {
+                    console.error('Failed to parse coordinates:', e);
                 }
             } else if (data.type === 'complete') {
                 // Analysis complete
@@ -156,7 +176,8 @@ export const useChatStore = create<ChatState>()(
     },
 
     send: async (text: string) => {
-        if (!text.trim() || get().sending) return;
+        const state = get();
+        if (!text.trim() || state.sending || !state.ws) return;
 
         // Immediately add user message
         const userMessage: Message = {
@@ -166,25 +187,37 @@ export const useChatStore = create<ChatState>()(
             ts: Date.now(),
         };
 
-        set((state) => ({
+        set({
             messages: [...state.messages, userMessage],
             sending: true,
-        }));
+            thinking: true,
+        });
 
-        // For now, just echo back (you can extend this for chat)
-        setTimeout(() => {
-            const assistantMessage: Message = {
-                id: `assistant-${Date.now()}`,
-                role: 'assistant',
-                text: 'Chat functionality coming soon!',
-                ts: Date.now(),
+        try {
+            // Get session ID from stored state (backend will construct file path)
+            const sessionId = state.sessionId;
+
+            if (!sessionId) {
+                throw new Error('No session ID available');
+            }
+
+            // Send chat message with full history
+            const chatMessage = {
+                type: 'chat_message',
+                text: text.trim(),
+                session_id: sessionId,
+                history: state.messages.map(msg => ({
+                    role: msg.role,
+                    text: msg.text
+                }))
             };
 
-            set((state) => ({
-                messages: [...state.messages, assistantMessage],
-                sending: false,
-            }));
-        }, 1000);
+            console.log('Sending chat message:', chatMessage);
+            state.ws.send(JSON.stringify(chatMessage));
+        } catch (error) {
+            console.error('Failed to send message:', error);
+            set({ sending: false, thinking: false });
+        }
     },
 
     clear: () => {
