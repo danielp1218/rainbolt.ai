@@ -1,6 +1,10 @@
 fastapi
-uvicorn
+'uvicorn[standard]'
 pillow
-dotenv
+python-dotenv
 langchain
 langchain_google_genai
+pinecone-client
+torch
+git+https://github.com/openai/CLIP.git
+

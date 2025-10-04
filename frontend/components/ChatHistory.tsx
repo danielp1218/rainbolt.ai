@@ -8,7 +8,7 @@ import { ChatMessage } from './ChatMessage';
 import { useChatStore } from './useChatStore';
 
 export function ChatHistory() {
-    const { messages, sending } = useChatStore();
+    const { messages, sending, thinking } = useChatStore();
     const scrollViewportRef = useRef<HTMLDivElement>(null);
     const [showScrollButton, setShowScrollButton] = useState(false);
     const [isAtBottom, setIsAtBottom] = useState(true);
@@ -93,8 +93,8 @@ export function ChatHistory() {
                             />
                         ))}
 
-                        {/* Typing indicator */}
-                        {sending && (
+                        {/* Typing/Thinking indicator */}
+                        {(sending || thinking) && (
                             <motion.div
                                 initial={{ opacity: 0, y: 8 }}
                                 animate={{ opacity: 1, y: 0 }}

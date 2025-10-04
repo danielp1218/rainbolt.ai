@@ -1,11 +1,14 @@
 "use client";
 
 import { useState, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button } from "@/components/ui/button";
+import { useChatStore } from '@/components/useChatStore';
 import "../glow.css";
 
 interface UploadResult {
   message: string;
+  session_id: string;
   filename: string;
   size: number;
   dimensions: {
@@ -17,6 +20,8 @@ interface UploadResult {
 }
 
 export default function UploadPage() {
+  const router = useRouter();
+  const connectWebSocket = useChatStore((state) => state.connectWebSocket);
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [result, setResult] = useState<UploadResult | null>(null);
@@ -93,6 +98,18 @@ export default function UploadPage() {
       }
 
       setResult(data);
+      
+      // Clear previous session and store the upload info
+      const store = useChatStore.getState();
+      store.clear(); // Clear previous messages and session
+      
+      // Store image directly in zustand (don't pass via URL - too large)
+      if (preview) {
+        useChatStore.setState({ uploadedImageUrl: preview });
+      }
+      
+      // Redirect to chat with session info only
+      router.push(`/chat?session=${data.session_id}&file=${encodeURIComponent(data.file_path)}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Upload failed');
     } finally {
