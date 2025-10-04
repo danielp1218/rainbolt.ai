@@ -107,6 +107,8 @@ async def websocket_chat(websocket: WebSocket):
             }
 
 
+
+
     except WebSocketDisconnect:
         manager.disconnect(websocket)
     except Exception as e: 

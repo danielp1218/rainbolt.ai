@@ -77,8 +77,8 @@ export default function Home() {
                 <Button size="lg" className="bg-white text-black hover:bg-white/90" asChild>
                   <a href="/chat">Try Chat Interface</a>
                 </Button>
-                <Button size="lg" variant="outline" className="border-white/20 text-black hover:bg-white/10">
-                  Learn More
+                <Button size="lg" variant="outline" className="border-white/20 text-black hover:bg-white/90">
+                  <a href="">Learn More</a>
                 </Button>
               </div>
             </div>
