@@ -152,9 +152,24 @@ export const useChatStore = create<ChatState>()(
                         } else if (data.type === 'coordinates') {
                             // Handle coordinates as a separate formatted message
                             try {
-                                const cleanedText = data.text.replace(/json|`/g, '');
+                                console.log('Received coordinates, raw text:', data.text);
+                                
+                                // Try to extract JSON from the text more robustly
+                                let cleanedText = data.text;
+                                
+                                // Remove markdown code blocks
+                                cleanedText = cleanedText.replace(/```json\s*/g, '').replace(/```\s*/g, '');
+                                
+                                // Try to find JSON array in the text
+                                const jsonMatch = cleanedText.match(/\[[\s\S]*\]/);
+                                if (jsonMatch) {
+                                    cleanedText = jsonMatch[0];
+                                }
+                                
                                 console.log('Cleaned coordinates text:', cleanedText);
                                 const coordinates = JSON.parse(cleanedText);
+                                console.log('Parsed coordinates:', coordinates);
+                                
                                 const formattedCoords = coordinates.map((coord: any, index: number) =>
                                     `${index + 1}. Latitude: ${coord.latitude}, Longitude: ${coord.longitude}`
                                 ).join('\n');
@@ -169,8 +184,19 @@ export const useChatStore = create<ChatState>()(
                                 };
                                 set({ messages: [...state.messages, newMessage] });
 
+                                // Parse coordinates into markers for the globe
+                                const newMarkers: Marker[] = coordinates.map((coord: any) => ({
+                                    latitude: coord.latitude,
+                                    longitude: coord.longitude,
+                                    accuracy: coord.accuracy / 100, // Convert percentage to decimal
+                                    facts: Array.isArray(coord.facts) ? coord.facts.join('. ') : coord.facts
+                                }));
+                                
+                                console.log('Setting markers from coordinates:', newMarkers);
+                                set({ markers: newMarkers, currentMarker: 0 });
+
                             } catch (e) {
-                                console.error('Failed to parse coordinates:', e);
+                                console.error('Failed to parse coordinates:', e, 'Raw data:', data.text);
                             }
                         } else if (data.type === 'complete') {
                             // Analysis complete

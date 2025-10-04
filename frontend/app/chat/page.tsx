@@ -60,38 +60,21 @@ export default function ChatPage() {
         };
     }, [searchParams, uploadedImageUrl]); // Re-run when URL params or image changes
     
-    // Test markers - will be replaced by actual markers from WebSocket
+    // Markers are now loaded from AI responses via WebSocket
+    // No need for test markers
+    
+    // Debug: Log markers whenever they change
     useEffect(() => {
-        if (markers.length === 0) {
-            // Set test markers on initial load
-            useChatStore.getState().setMarkers([
-                {
-                    latitude: 41.799983,
-                    longitude: -72.209358,
-                    accuracy: 0.85,
-                    facts: "Hartford, Connecticut - Capital city with distinctive architecture"
-                },
-                {
-                    latitude: 40.7128,
-                    longitude: -74.0060,
-                    accuracy: 0.92,
-                    facts: "New York City - Iconic skyline and dense urban environment"
-                },
-                {
-                    latitude: 51.5074,
-                    longitude: -0.1278,
-                    accuracy: 0.78,
-                    facts: "London, UK - Historic landmarks and Thames River visible"
-                }
-            ]);
-        }
-    }, []);
+        console.log('Markers updated:', markers);
+    }, [markers]);
 
     // Convert all markers to SimpleGlobe format
     const globeMarkers = markers.map(m => ({ 
         lat: m.latitude, 
         long: m.longitude 
     }));
+    
+    console.log('Globe markers:', globeMarkers, 'Total markers:', markers.length);
 
     // Handler for when a marker is clicked
     const handleMarkerClick = (index: number) => {

@@ -160,11 +160,28 @@ async def websocket_chat(websocket: WebSocket, session_id: str):
                         image
                     )
                     
+                    full_response = ""
                     for chunk in response_stream:
                         chunk_text = chunk.content
+                        full_response += chunk_text
                         await manager.send_message(session_id, {
                             "type": "chat_response_chunk",
                             "text": chunk_text
+                        })
+                    
+                    # Check if AI wants to output new coordinates
+                    if "__output__coordinates__" in full_response:
+                        await manager.send_message(session_id, {
+                            "type": "status",
+                            "message": "Calculating revised coordinates..."
+                        })
+                        
+                        # Generate new coordinates based on the reasoning
+                        coordinates = estimate_coordinates(full_response)
+                        
+                        await manager.send_message(session_id, {
+                            "type": "coordinates",
+                            "text": coordinates
                         })
                     
                     await manager.send_message(session_id, {
