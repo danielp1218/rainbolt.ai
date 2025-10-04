@@ -17,15 +17,22 @@ interface Location {
 interface EarthSceneProps {
   markers?: Location[];
   currentSection?: number;
+  onWaterlooScreenPosition?: (position: { x: number; y: number }) => void;
 }
 
-export default function EarthScene({ markers = [], currentSection = 0 }: EarthSceneProps) {
+export default function EarthScene({ markers = [], currentSection = 0, onWaterlooScreenPosition }: EarthSceneProps) {
   const mountRef = useRef<HTMLDivElement>(null);
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
   const targetPosition = useRef(new THREE.Vector3(7, 0, 4));
   const targetLookAt = useRef(new THREE.Vector3(-7.7, 0, 0));
   const currentSectionRef = useRef(currentSection);
   const targetRotationY = useRef(0);
+  const targetRotationX = useRef(0);
+  const targetRotationZ = useRef(0);
+  const globeRef = useRef<THREE.Mesh | null>(null);
+  const connectionLineRef = useRef<THREE.Line | null>(null);
+  const waterlooScreenPos = useRef({ x: 0, y: 0 });
+
 
   // Add Waterloo as a default marker
 const defaultMarkers = [
@@ -214,6 +221,30 @@ const defaultMarkers = [
       markerGroup.add(markerMesh);
     });
     globeGroup.add(markerGroup);
+
+    // Create connection line from Waterloo marker to UI badge (only visible in Team section)
+    const [waterlooX, waterlooY, waterlooZ] = latLongToVector3(43.4643, -80.5204, 1.02);
+    const waterlooWorldPos = new THREE.Vector3(waterlooX, waterlooY, waterlooZ);
+    
+    // Create line geometry - starts at Waterloo, extends toward screen right
+    const lineGeometry = new THREE.BufferGeometry();
+    const linePoints = [
+      waterlooWorldPos,
+      new THREE.Vector3(waterlooX + 2, waterlooY + 0.5, waterlooZ + 1) // Extend toward UI badge area
+    ];
+    lineGeometry.setFromPoints(linePoints);
+    
+    const lineMaterial = new THREE.LineBasicMaterial({
+      color: 0xffffff,
+      transparent: true,
+      opacity: 0.6,
+      linewidth: 2
+    });
+    
+    const connectionLine = new THREE.Line(lineGeometry, lineMaterial);
+    connectionLine.visible = false; // Initially hidden
+    connectionLineRef.current = connectionLine;
+    globeGroup.add(connectionLine);
 
     // Add glow effect
     const glowVertexShader = `
@@ -455,15 +486,38 @@ intensity = pow(intensity, 1.5); // Reduced exponent for larger middle gradient
         emojiModel.lookAt(targetPoint);
       }
 
+      // Calculate screen coordinates for Waterloo marker (for Team section connection line)
+      if (currentSectionRef.current === 3) {
+        const [waterlooX, waterlooY, waterlooZ] = latLongToVector3(43.4643, -80.5204, 1.02);
+        const waterlooWorldPos = new THREE.Vector3(waterlooX, waterlooY, waterlooZ);
+        
+        // Apply globe group transformations
+        waterlooWorldPos.applyMatrix4(globeGroup.matrixWorld);
+        
+        // Project to screen coordinates
+        const vector = waterlooWorldPos.clone().project(camera);
+        
+        // Convert to screen pixels
+        const x = (vector.x * 0.5 + 0.5) * window.innerWidth;
+        const y = (vector.y * -0.5 + 0.5) * window.innerHeight;
+        
+        waterlooScreenPos.current = { x, y };
+      }
+
       renderer.render(scene, camera);
       
       // Handle rotation: either animate to target rotation (Team section) or continue normal rotation
       if (currentSectionRef.current === 3) {
-        // Fast rotate to bring Waterloo to the front
+        // Fast rotate to bring Waterloo to the front and tilt downwards
         globeGroup.rotation.y += (targetRotationY.current - globeGroup.rotation.y) * 0.15;
+        globeGroup.rotation.x += (targetRotationX.current - globeGroup.rotation.x) * 0.15;
+        globeGroup.rotation.z += (targetRotationZ.current - globeGroup.rotation.z) * 0.15;
       } else {
         // Normal continuous rotation for other sections
         globeGroup.rotation.y += 0.001;
+        // Reset X and Z rotation for other sections
+        globeGroup.rotation.x += (0 - globeGroup.rotation.x) * 0.05;
+        globeGroup.rotation.z += (0 - globeGroup.rotation.z) * 0.05;
       }
       
       // Animate streak particles (head and tail movement)
@@ -541,8 +595,8 @@ intensity = pow(intensity, 1.5); // Reduced exponent for larger middle gradient
       0: { position: [7, 0, 4], lookAt: [-7.7, 0, 0] },        // Hero - default view
       1: { position: [6, -4, 2], lookAt: [-7.7, 1, -0.85] },      // Features - globe at bottom, camera lower
       2: { position: [12, 0, -24], lookAt: [-7.7, 0, 0] },       // About - globe on left, camera further away
-      3: { position: [-2, 1, 1], lookAt: [-7.7, 0, 0] },       // Team - camera much closer, globe on right, zoom on Waterloo
-      4: { position: [8, 0, -8], lookAt: [-7.7, 0, 0] },       // Contact - top view
+      3: { position: [10, -2.5, 1], lookAt: [-7.7, 0, 10] },       // Team - camera much closer, globe on right, zoom on Waterloo
+      4: { position: [-18, 0, -0.5], lookAt: [-7.7, 0, -3] },       // Contact - camera far left, looking at globe to center it left, emoji appears right
     };
 
     const config = positions[currentSection] || positions[0];
@@ -559,14 +613,32 @@ intensity = pow(intensity, 1.5); // Reduced exponent for larger middle gradient
       // Calculate rotation needed to bring Waterloo to the front
       // Waterloo longitude is -80.5204°, we need to rotate the globe to bring this longitude to the front
       // Adding extra rotation to account for globe's initial orientation
-      const waterlooRotation = (80.5204 + 120) * (Math.PI / 180); // Adding 120° for more rotation
-      targetRotationY.current = waterlooRotation;
+      const waterlooRotationY = (80.5204 + 160) * (Math.PI / 180);
+      const waterlooRotationX = (90) * (Math.PI / 180); // Slight upward tilt (80 degrees)
+      const waterlooRotationZ = (90) * (Math.PI / 180); // Slight Z-axis rotation (-20 degrees)
+
+      targetRotationY.current = waterlooRotationY;
+      targetRotationX.current = waterlooRotationX;
+      targetRotationZ.current = waterlooRotationZ;
+
+      // Show connection line for Team section
+      if (connectionLineRef.current) {
+        connectionLineRef.current.visible = true;
+      }
       
       targetPosition.current.set(...config.position);
       targetLookAt.current.set(waterlooWorldX, waterlooWorldY, waterlooWorldZ);
     } else {
       // Reset rotation for other sections
       targetRotationY.current = 0;
+      targetRotationX.current = 0;
+      targetRotationZ.current = 0;
+
+      // Hide connection line for other sections
+      if (connectionLineRef.current) {
+        connectionLineRef.current.visible = false;
+      }
+
       targetPosition.current.set(...config.position);
       targetLookAt.current.set(...config.lookAt);
     }
