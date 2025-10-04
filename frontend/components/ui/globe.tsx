@@ -21,6 +21,17 @@ interface EarthSceneProps {
 export default function EarthScene({ markers = [] }: EarthSceneProps) {
   const mountRef = useRef<HTMLDivElement>(null);
 
+  // Add Waterloo as a default marker
+  const defaultMarkers: Location[] = [
+    {
+      lat: 43.4643, // Waterloo, Ontario latitude
+      long: -80.5204, // Waterloo, Ontario longitude
+      label: "Waterloo",
+      color: "#00ff00" // Green marker
+    },
+    ...markers // Include any additional markers passed as props
+  ];
+
   useEffect(() => {
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(
@@ -180,7 +191,7 @@ export default function EarthScene({ markers = [] }: EarthSceneProps) {
 
     // Add markers
     const markerGroup = new THREE.Group();
-    markers.forEach((marker) => {
+    defaultMarkers.forEach((marker) => {
       const [x, y, z] = latLongToVector3(marker.lat, marker.long, 1.02); // Slightly larger radius to place markers above surface
       
       const markerGeometry = new THREE.SphereGeometry(0.02, 16, 16);
@@ -227,10 +238,10 @@ export default function EarthScene({ markers = [] }: EarthSceneProps) {
         float alignment = dot(vNormal, vPositionNormal);
 // Flip it so edges are bright, center is dim
 float intensity = 1.0 - smoothstep(0.0, 1.0, 1.0-abs(alignment));
-intensity = pow(intensity, 3.0); // tweak exponent for softness/hardness
+intensity = pow(intensity, 1.5); // Reduced exponent for larger middle gradient
         
         vec3 glowColor = vec3(1.0, 0.1, 0.1);
-        vec3 glow = glowColor * intensity * 1.0;
+        vec3 glow = glowColor * intensity * 3.0;
         
         gl_FragColor = vec4(glow, intensity * 0.5);
       }
@@ -251,6 +262,63 @@ intensity = pow(intensity, 3.0); // tweak exponent for softness/hardness
       glowMaterial
     );
     globeGroup.add(glowMesh);
+
+    // Add flying streak particles (head/tail only, not full orbits)
+    const streakParticles: Array<{
+      head: THREE.Mesh;
+      tail: THREE.Mesh[];
+      angle: number;
+      speed: number;
+      radius: number;
+      axis: THREE.Vector3;
+    }> = [];
+
+    function createStreakParticle(radius: number, color: number, speed: number, axis: THREE.Vector3) {
+      // Head particle (bright)
+      const headGeometry = new THREE.SphereGeometry(0.015, 8, 8); // Reduced from 0.02 to match tail size
+      const headMaterial = new THREE.MeshBasicMaterial({
+        color,
+        transparent: true,
+        opacity: 1.0,
+      });
+      const head = new THREE.Mesh(headGeometry, headMaterial);
+
+      // Tail particles (fading)
+      const tail: THREE.Mesh[] = [];
+      const tailLength = 15; // Increased from 8 to make longerhead streaks
+      
+      for (let i = 0; i < tailLength; i++) {
+        const tailGeometry = new THREE.SphereGeometry(0.015 - (i * 0.0003), 6, 6); // Smaller size reduction
+        const opacity = 1.0 - (i / tailLength) * 0.9; // Fade from 1.0 to 0.1
+        const tailMaterial = new THREE.MeshBasicMaterial({
+          color,
+          transparent: true,
+          opacity,
+        });
+        const tailSegment = new THREE.Mesh(tailGeometry, tailMaterial);
+        tail.push(tailSegment);
+        globeGroup.add(tailSegment);
+      }
+
+      globeGroup.add(head);
+
+      return {
+        head,
+        tail,
+        angle: Math.random() * Math.PI * 2,
+        speed,
+        radius,
+        axis,
+      };
+    }
+
+    // Create multiple streak particles
+    streakParticles.push(
+      createStreakParticle(1.3, 0xffffff, 0.02, new THREE.Vector3(0, 1, 0)), // Horizontal white
+      createStreakParticle(1.4, 0xccddff, 0.015, new THREE.Vector3(1, 0.5, 0).normalize()), // Tilted blue
+      createStreakParticle(1.5, 0xffccdd, 0.018, new THREE.Vector3(0.5, 0, 1).normalize()), // Tilted pink
+      createStreakParticle(1.35, 0xddffcc, 0.012, new THREE.Vector3(1, 1, 0).normalize()), // Green (now positive speed)
+    );
 
     // Create a second layer for interactive points
     const detail = 120;
@@ -367,6 +435,37 @@ const fragmentShader = `
     function animate() {
       renderer.render(scene, camera);
       globeGroup.rotation.y += 0.001;
+      
+      // Animate streak particles (head and tail movement)
+      streakParticles.forEach((streak) => {
+        // Update angle
+        streak.angle += streak.speed;
+        
+        // Calculate new position around the orbit
+        const basePos = new THREE.Vector3(
+          Math.cos(streak.angle) * streak.radius,
+          0,
+          Math.sin(streak.angle) * streak.radius
+        );
+        
+        // Apply axis rotation for different orbital planes
+        basePos.applyAxisAngle(streak.axis, streak.angle * 0.5);
+        
+        // Position head
+        streak.head.position.copy(basePos);
+        
+        // Position tail segments (follow behind head)
+        streak.tail.forEach((tailSegment, i) => {
+          const trailAngle = streak.angle - (i + 1) * 0.02; // Much closer spacing
+          const trailPos = new THREE.Vector3(
+            Math.cos(trailAngle) * streak.radius,
+            0,
+            Math.sin(trailAngle) * streak.radius
+          );
+          trailPos.applyAxisAngle(streak.axis, trailAngle * 0.5);
+          tailSegment.position.copy(trailPos);
+        });
+      });
       
       handleRaycast();
       orbitCtrl.update();
