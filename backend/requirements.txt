@@ -1,2 +1,6 @@
 fastapi
 uvicorn
+pillow
+dotenv
+langchain
+langchain_google_genai

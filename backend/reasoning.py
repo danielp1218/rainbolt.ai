@@ -1,8 +1,7 @@
 import os
-import getpass
 from dotenv import load_dotenv
 from typing import Dict
-from langchain.chat_models import init_chat_model
+from langchain_google_genai import ChatGoogleGenerativeAI
 
 os.environ["GRPC_VERBOSITY"] = "ERROR"
 os.environ["GRPC_TRACE"] = ""
@@ -12,12 +11,11 @@ load_dotenv()
 FEATURE_THRESHOLD = 0.6
 
 if not os.getenv("GOOGLE_API_KEY"):
-    os.environ["GOOGLE_API_KEY"] = getpass.getpass("Enter Gemini API Key: ")
+    raise ValueError("GOOGLE_API_KEY environment variable not set")
 
-def estimate_reasoning(image_matches: Dict, features: Dict) -> str:
-    
-    model = init_chat_model("gemini-2.5-flash", model_provider="google_genai")
+model = ChatGoogleGenerativeAI(model="gemini-2.5-flash", thinking_budget=0)
 
+def think(image_matches: Dict, features: Dict) -> str:
     visual_match = ""
     for match in image_matches['matches']:
         latitude = match['metadata']['latitude']
@@ -54,11 +52,14 @@ def estimate_reasoning(image_matches: Dict, features: Dict) -> str:
             Write your response in a digestible format, using bullet points or numbered lists where appropriate. Be concise as possible while ensuring clarity and completeness in your reasoning.
 """
 
-    response = model.invoke(prompt)
-    return response.content
+    stream = model.stream(prompt)
+    return stream
 
-def estimate_coordinates(reasoning) -> tuple[float, float]:
-    model = init_chat_model("gemini-2.5-flash", model_provider="google_genai")
+def estimate_coordinates(reasoning_stream) -> tuple[float, float]:
+    reasoning = ""
+    for chunk in reasoning_stream:
+        reasoning += chunk.content
+        print(chunk.content, end="", flush=True)
 
     prompt = f"""
             Give me the top 3 most probable coordinates (latitude, longitude) based on the following reasoning.
@@ -68,9 +69,8 @@ def estimate_coordinates(reasoning) -> tuple[float, float]:
             Format your response as a JSON array of objects, where each object contains "latitude" and "longitude" keys. Ensure the coordinates are in decimal format.
             """
 
-    response = model.invoke(prompt)
-
-    return response.content
+    stream = model.stream(prompt)
+    return stream
 
 example_image_matches = {'matches': 
     [{'id': '34/4e/10473753674.jpg',
@@ -181,5 +181,7 @@ example_features = {'matches': [{'id': 'page_115_p0-15.png',
  'namespace': 'features',
  'usage': {'read_units': 1}}
 
-print(estimate_reasoning(example_image_matches, example_features))
-print(estimate_coordinates(estimate_reasoning(example_image_matches, example_features)))
+stream = estimate_coordinates(think(example_image_matches, example_features))
+
+for chunk in stream:
+    print(chunk.content, end="", flush=True)
