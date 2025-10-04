@@ -4,12 +4,17 @@ from dotenv import load_dotenv
 from typing import Dict
 from langchain.chat_models import init_chat_model
 
+os.environ["GRPC_VERBOSITY"] = "ERROR"
+os.environ["GRPC_TRACE"] = ""
+
 load_dotenv() 
+
+FEATURE_THRESHOLD = 0.6
 
 if not os.getenv("GOOGLE_API_KEY"):
     os.environ["GOOGLE_API_KEY"] = getpass.getpass("Enter Gemini API Key: ")
 
-def estimate_coordinates(image_matches: Dict, features: Dict) -> str:
+def estimate_reasoning(image_matches: Dict, features: Dict) -> str:
     
     model = init_chat_model("gemini-2.5-flash", model_provider="google_genai")
 
@@ -22,6 +27,8 @@ def estimate_coordinates(image_matches: Dict, features: Dict) -> str:
 
     features_match = ""
     for match in features['matches']:
+        if match['score'] < FEATURE_THRESHOLD:
+            continue
         text = match['metadata']['text']
         score = match['score']
         features_match += f"(Description of feature: {text}) - Score: {score}\n"
@@ -48,6 +55,21 @@ def estimate_coordinates(image_matches: Dict, features: Dict) -> str:
 """
 
     response = model.invoke(prompt)
+    return response.content
+
+def estimate_coordinates(reasoning) -> tuple[float, float]:
+    model = init_chat_model("gemini-2.5-flash", model_provider="google_genai")
+
+    prompt = f"""
+            Give me the top 3 most probable coordinates (latitude, longitude) based on the following reasoning.
+                
+            CONTEXT: {reasoning}
+
+            Format your response as a JSON array of objects, where each object contains "latitude" and "longitude" keys. Ensure the coordinates are in decimal format.
+            """
+
+    response = model.invoke(prompt)
+
     return response.content
 
 example_image_matches = {'matches': 
@@ -159,4 +181,5 @@ example_features = {'matches': [{'id': 'page_115_p0-15.png',
  'namespace': 'features',
  'usage': {'read_units': 1}}
 
-print(estimate_coordinates(example_image_matches, example_features))
+print(estimate_reasoning(example_image_matches, example_features))
+print(estimate_coordinates(estimate_reasoning(example_image_matches, example_features)))
