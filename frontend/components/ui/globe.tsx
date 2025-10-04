@@ -440,6 +440,25 @@ intensity = pow(intensity, 1.5); // Reduced exponent for larger middle gradient
         orbitCtrl.target.copy(targetLookAt.current);
       }
 
+      // Update emoji tracking continuously (even when mouse not moving)
+      if (emojiModel) {
+        // Cast ray from camera through mouse position
+        emojiRaycaster.setFromCamera(mouse, camera);
+        
+        // Get cursor point in 3D space at distance 1 from camera
+        const cursorPoint = new THREE.Vector3();
+        emojiRaycaster.ray.at(1, cursorPoint); // 1 unit out from camera
+        
+        // Calculate direction from emoji to cursor point
+        const direction = cursorPoint.clone().sub(emojiModel.position).normalize();
+        
+        // Create target point by moving from emoji position in direction of cursor
+        const targetPoint = emojiModel.position.clone().add(direction);
+        
+        // Make emoji look at the target point (toward cursor)
+        emojiModel.lookAt(targetPoint);
+      }
+
       renderer.render(scene, camera);
       globeGroup.rotation.y += 0.001;
       
@@ -487,33 +506,9 @@ intensity = pow(intensity, 1.5); // Reduced exponent for larger middle gradient
         -(evt.clientY / window.innerHeight) * 2 + 1
       );
       
-      // Update mouse for emoji tracking - get cursor 3D position and direction
-      if (emojiModel) {
-        // Convert mouse to normalized device coordinates
-        mouse.x = (evt.clientX / window.innerWidth) * 2 - 1;
-        mouse.y = -(evt.clientY / window.innerHeight) * 2 + 1;
-        
-        // Cast ray from camera through mouse position
-        emojiRaycaster.setFromCamera(mouse, camera);
-        
-        // Get cursor point in 3D space at distance 1 from camera
-        const cursorPoint = new THREE.Vector3();
-        emojiRaycaster.ray.at(1, cursorPoint); // 1 unit out from camera
-        
-        // Calculate direction from emoji to cursor point
-        const direction = cursorPoint.clone().sub(emojiModel.position).normalize();
-        
-        // Create target point by moving from emoji position in direction of cursor
-        const targetPoint = emojiModel.position.clone().add(direction);
-        
-        // Make emoji look at the target point (toward cursor)
-        emojiModel.lookAt(targetPoint);
-        
-        console.log('Mouse:', mouse.x, mouse.y);
-        console.log('Cursor point (1 unit out):', cursorPoint.x, cursorPoint.y, cursorPoint.z);
-        console.log('Direction vector:', direction.x, direction.y, direction.z);
-        console.log('Target point:', targetPoint.x, targetPoint.y, targetPoint.z);
-      }
+      // Update mouse coordinates for emoji tracking
+      mouse.x = (evt.clientX / window.innerWidth) * 2 - 1;
+      mouse.y = -(evt.clientY / window.innerHeight) * 2 + 1;
     }
 
     function onResize() {

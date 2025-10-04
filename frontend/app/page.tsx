@@ -36,7 +36,7 @@ export default function Home() {
   }, []);
 
   return (
-    <div className="relative h-screen overflow-y-auto snap-mandatory scroll-smooth">
+    <div className="relative h-screen overflow-y-auto snap-y snap-mandatory scroll-smooth">
       {/* Background Elements */}
       <div className="fixed inset-0 z-0">
         <EarthScene
@@ -57,7 +57,7 @@ export default function Home() {
       </div>
 
       {/* Hero Section with Earth */}
-      <section data-section-id="0" className="relative h-screen">
+      <section data-section-id="0" className="relative h-screen snap-start">
         <div className="absolute inset-0 pointer-events-none" />
         <div className="absolute inset-0 flex items-center z-[60]">
           <div className="container mx-auto">
@@ -87,7 +87,7 @@ export default function Home() {
       </section>
 
       {/* Features Section */}
-      <section id="features" data-section-id="1" className="relative h-screen snap-always snap-start">
+      <section id="features" data-section-id="1" className="relative h-screen snap-start">
         <div className="absolute inset-0 flex items-center">
           <div className="container mx-auto px-4">
             <h2 className="text-4xl font-bold text-white mb-12 text-center">
@@ -112,7 +112,7 @@ export default function Home() {
       </section>
 
       {/* About Section */}
-      <section id="about" data-section-id="2" className="relative h-screen snap-always snap-start from-black/90 to-black z-10">
+      <section id="about" data-section-id="2" className="relative h-screen snap-start from-black/90 to-black z-10">
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="container mx-auto px-4 py-16">
             <h2 className="text-4xl font-bold text-white mb-12 text-center">
@@ -133,7 +133,7 @@ export default function Home() {
       </section>
 
       {/* Team Section */}
-      <section id="team" data-section-id="3" className="relative h-screen snap-always snap-start flex items-center justify-center">
+      <section id="team" data-section-id="3" className="relative h-screen snap-start flex items-center justify-center">
         <div className="container mx-auto px-4">
           <h2 className="text-5xl font-bold text-white mb-12 text-center">
             Meet Our Team
@@ -159,7 +159,7 @@ export default function Home() {
       </section>
 
       {/* Contact Section */}
-      <section id="contact" data-section-id="4" className="relative h-screen snap-always snap-start">
+      <section id="contact" data-section-id="4" className="relative h-screen snap-start">
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="container mx-auto px-4 py-16">
             <h2 className="text-4xl font-bold text-white mb-12 text-center">
