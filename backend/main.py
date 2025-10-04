@@ -74,7 +74,7 @@ async def upload_image(file: UploadFile = File(...)):
         file_extension = os.path.splitext(file.filename)[1] or '.jpg'
         
         # Save the file with session ID as name
-        new_filename = f"{session_id}{file_extension}"
+        new_filename = f"{session_id}.jpg"
         file_path = os.path.join(UPLOAD_DIR, new_filename)
         with open(file_path, "wb") as f:
             f.write(contents)
@@ -105,9 +105,86 @@ async def websocket_chat(websocket: WebSocket, session_id: str):
             print(f"Received data: {data}")
             message_data = json.loads(data)
             
+            message_type = message_data.get("type")
+            
+            # Handle user chat messages
+            if message_type == "chat_message":
+                user_message = message_data.get("text", "")
+                chat_history = message_data.get("history", [])
+                chat_session_id = message_data.get("session_id", session_id)
+                
+                print(f"Received chat message: {user_message}")
+                
+                # Find the image file for this session
+                file_path = None
+                uploads_dir = "uploads"
+                for filename in os.listdir(uploads_dir):
+                    if filename.startswith(chat_session_id):
+                        file_path = os.path.join(uploads_dir, filename)
+                        break
+                
+                if not file_path or not os.path.exists(file_path):
+                    await manager.send_message(session_id, {
+                        "type": "error",
+                        "message": "Image file not found"
+                    })
+                    continue
+                
+                try:
+                    # Load the image
+                    image = Image.open(file_path)
+                    
+                    # Query Pinecone for context
+                    await manager.send_message(session_id, {
+                        "type": "status",
+                        "message": "Analyzing your question..."
+                    })
+                    
+                    image_matches = query_pinecone_with_image(image, top_k=5, namespace="images")
+                    feature_matches = query_pinecone_with_image(image, top_k=10, namespace="features")
+                    
+                    # Build conversation context
+                    conversation_context = "\n\nPrevious Conversation:\n"
+                    for msg in chat_history:
+                        role = msg.get("role", "user")
+                        text = msg.get("text", "")
+                        conversation_context += f"{role.upper()}: {text}\n"
+                    
+                    # Stream response
+                    from reasoning import chat_with_context
+                    response_stream = chat_with_context(
+                        user_message, 
+                        conversation_context,
+                        image_matches, 
+                        feature_matches, 
+                        image
+                    )
+                    
+                    for chunk in response_stream:
+                        chunk_text = chunk.content
+                        await manager.send_message(session_id, {
+                            "type": "chat_response_chunk",
+                            "text": chunk_text
+                        })
+                    
+                    await manager.send_message(session_id, {
+                        "type": "complete",
+                        "message": "Response complete"
+                    })
+                    
+                except Exception as e:
+                    print(f"Error processing chat: {e}")
+                    import traceback
+                    traceback.print_exc()
+                    await manager.send_message(session_id, {
+                        "type": "error",
+                        "message": f"Error processing message: {str(e)}"
+                    })
+                continue
+            
             # Check if this is an image processing request
-            if message_data.get("type") == "process_image":
-                file_path = message_data.get("file_path")
+            if message_type == "process_image":
+                file_path = f"uploads/{message_data.get('session_id')}.jpg"
                 print(f"Processing image request for: {file_path}")
                 print(f"File exists: {os.path.exists(file_path) if file_path else False}")
                 
@@ -168,16 +245,12 @@ async def websocket_chat(websocket: WebSocket, session_id: str):
                         "message": "Calculating final coordinates..."
                     })
                     
-                    coordinates_text = ""
-                    coordinates_stream = estimate_coordinates(reasoning_text)
+                    coordinates = estimate_coordinates(reasoning_text)
                     
-                    for chunk in coordinates_stream:
-                        chunk_text = chunk.content
-                        coordinates_text += chunk_text
-                        await manager.send_message(session_id, {
-                            "type": "coordinates_chunk",
-                            "text": chunk_text
-                        })
+                    await manager.send_message(session_id, {
+                        "type": "coordinates",
+                        "text": coordinates
+                    })
                     
                     # Send completion message
                     await manager.send_message(session_id, {

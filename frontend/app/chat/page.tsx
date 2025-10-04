@@ -15,7 +15,6 @@ export default function ChatPage() {
     // Connect WebSocket when page mounts with session info
     useEffect(() => {
         const sessionId = searchParams.get('session');
-        const filePath = searchParams.get('file');
         
         // Get stored state
         const store = useChatStore.getState();
@@ -23,22 +22,23 @@ export default function ChatPage() {
         
         console.log('Chat page mounted', { 
             sessionId, 
-            filePath, 
             storedSessionId, 
             hasProcessedSession,
             hasUploadedImage: !!uploadedImageUrl 
         });
         
         // Only connect if we have session info and haven't processed this exact session yet
-        if (sessionId && filePath) {
+        if (sessionId) {
             // Check if this is the same session we already processed
             if (storedSessionId === sessionId && hasProcessedSession) {
                 console.log('Session already processed, skipping WebSocket connection');
                 return;
             }
             
+            // File path is always uploads/{sessionId}.{extension}
+            // We'll send the session ID and backend will construct the path
             console.log('Connecting WebSocket from chat page...');
-            connectWebSocket(sessionId, filePath, uploadedImageUrl || undefined).then(() => {
+            connectWebSocket(sessionId).then(() => {
                 // Mark this session as processed after successful connection
                 markSessionProcessed(sessionId);
             }).catch((err) => {

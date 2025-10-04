@@ -108,8 +108,8 @@ export default function UploadPage() {
         useChatStore.setState({ uploadedImageUrl: preview });
       }
       
-      // Redirect to chat with session info only
-      router.push(`/chat?session=${data.session_id}&file=${encodeURIComponent(data.file_path)}`);
+      // Redirect to chat with session ID only (file path is always uploads/{session_id}.extension)
+      router.push(`/chat?session=${data.session_id}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Upload failed');
     } finally {
