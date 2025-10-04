@@ -29,6 +29,9 @@ export default function SimpleGlobe({ markers = [], targetMarkerIndex = 0, isLoc
     isAnimating: boolean;
   }>({ targetRotationY: 0, targetRotationX: 0, isAnimating: false });
   
+  // Store isLocked in a ref so the animate function can access current value
+  const isLockedRef = useRef(isLocked);
+  
   // Store refs to avoid recreating Three.js scene
   const sceneRef = useRef<{
     scene: THREE.Scene | null;
@@ -39,6 +42,15 @@ export default function SimpleGlobe({ markers = [], targetMarkerIndex = 0, isLoc
     markerGroup: THREE.Group | null;
     markerMeshes: THREE.Mesh[];
   }>({ scene: null, camera: null, renderer: null, globeYRotationGroup: null, globeXRotationGroup: null, markerGroup: null, markerMeshes: [] });
+
+  // Keep isLockedRef in sync with isLocked prop
+  useEffect(() => {
+    isLockedRef.current = isLocked;
+    if (!isLocked) {
+      // Stop any ongoing animation when unlocked
+      animationRef.current.isAnimating = false;
+    }
+  }, [isLocked]);
 
   // Effect for handling target marker changes without recreating scene
   useEffect(() => {
@@ -278,7 +290,7 @@ export default function SimpleGlobe({ markers = [], targetMarkerIndex = 0, isLoc
       stars.rotation.x += 0.0001;
       
       // Handle smooth rotation animation to target (only when locked)
-      if (isLocked && animationRef.current.isAnimating && !isDragging) {
+      if (isLockedRef.current && animationRef.current.isAnimating && !isDragging) {
         const lerpFactor = 0.05; // Smoothness of animation (lower = smoother but slower)
         
         // Smoothly interpolate towards target rotation
@@ -292,7 +304,7 @@ export default function SimpleGlobe({ markers = [], targetMarkerIndex = 0, isLoc
         if (Math.abs(deltaY) < 0.001 && Math.abs(deltaX) < 0.001) {
           animationRef.current.isAnimating = false;
         }
-      } else if (!isLocked && !isDragging && !animationRef.current.isAnimating) {
+      } else if (!isLockedRef.current && !isDragging && !animationRef.current.isAnimating) {
         // Passive rotation of globe (only when unlocked, not dragging, and not animating)
         globeYRotationGroup.rotation.y += 0.001;
       }
@@ -344,7 +356,7 @@ export default function SimpleGlobe({ markers = [], targetMarkerIndex = 0, isLoc
       }
       
       // If clicking on globe (not marker) and currently locked, unlock it
-      if (isLocked && onUnlock) {
+      if (isLockedRef.current && onUnlock) {
         onUnlock();
       }
       

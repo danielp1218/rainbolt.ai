@@ -14,6 +14,7 @@ export default function ChatPage() {
     const uploadedImageUrl = useChatStore((state) => state.uploadedImageUrl);
     const markers = useChatStore((state) => state.markers);
     const currentMarker = useChatStore((state) => state.currentMarker);
+    const setCurrentMarker = useChatStore((state) => state.setCurrentMarker);
     const nextMarker = useChatStore((state) => state.nextMarker);
     const previousMarker = useChatStore((state) => state.previousMarker);
     const [isLocked, setIsLocked] = useState(true);
@@ -94,25 +95,9 @@ export default function ChatPage() {
 
     // Handler for when a marker is clicked
     const handleMarkerClick = (index: number) => {
-        // Update current marker to the clicked one
-        if (index >= 0 && index < markers.length) {
-            // Set the marker in the store
-            let currentIdx = 0;
-            const setCurrentMarker = () => {
-                const state = useChatStore.getState();
-                // Find and set the correct index
-                for (let i = 0; i < index; i++) {
-                    state.nextMarker();
-                }
-            };
-            // Reset to 0 first, then navigate to target
-            while (useChatStore.getState().currentMarker !== 0) {
-                useChatStore.getState().previousMarker();
-            }
-            for (let i = 0; i < index; i++) {
-                useChatStore.getState().nextMarker();
-            }
-        }
+        console.log('Marker clicked, setting to index:', index);
+        setCurrentMarker(index);
+        setIsLocked(true);
     };
 
     // Get current marker data
@@ -139,7 +124,7 @@ export default function ChatPage() {
 
                 {/* Location Facts Popup - Left Side */}
                 {isLocked && currentMarkerData && (
-                    <div className="absolute left-8 top-1/2 transform -translate-y-1/2 w-80 bg-black/90 backdrop-blur-md rounded-lg border border-white/20 p-6 shadow-2xl">
+                    <div className="absolute left-8 top-1/2 transform -translate-y-1/2 w-80 bg-black/90 backdrop-blur-md rounded-lg border border-white/20 p-6 shadow-2xl z-10 pointer-events-auto">
                         <div className="flex items-start gap-3 mb-4">
                             <div className="flex-shrink-0">
                                 <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center">
@@ -189,9 +174,13 @@ export default function ChatPage() {
                 )}
                 
                 {/* Lock/Unlock Toggle Button */}
-                <div className="absolute top-8 left-8">
+                <div className="absolute top-8 left-8 z-10">
                     <button
-                        onClick={() => setIsLocked(!isLocked)}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            setIsLocked(!isLocked);
+                        }}
+                        onMouseDown={(e) => e.stopPropagation()}
                         className="bg-black/80 backdrop-blur-sm rounded-full p-3 border border-white/20 text-white hover:bg-white/10 transition-colors"
                         aria-label={isLocked ? "Unlock globe" : "Lock globe"}
                         title={isLocked ? "Unlock for free rotation" : "Lock to marker"}
@@ -210,12 +199,14 @@ export default function ChatPage() {
                 
                 {/* Marker Navigation Buttons */}
                 {markers.length > 1 && (
-                    <div className="absolute bottom-8 left-[60%] transform flex items-center gap-4 bg-black/80 backdrop-blur-sm rounded-full px-6 py-3 border border-white/20">
+                    <div className="absolute bottom-8 left-[60%] transform flex items-center gap-4 bg-black/80 backdrop-blur-sm rounded-full px-6 py-3 border border-white/20 z-10">
                         <button
-                            onClick={() => {
+                            onClick={(e) => {
+                                e.stopPropagation();
                                 setIsLocked(true);
                                 previousMarker();
                             }}
+                            onMouseDown={(e) => e.stopPropagation()}
                             className="text-white hover:text-blue-400 transition-colors p-2 hover:bg-white/10 rounded-full"
                             aria-label="Previous marker"
                         >
@@ -227,10 +218,12 @@ export default function ChatPage() {
                             {currentMarker + 1} / {markers.length}
                         </div>
                         <button
-                            onClick={() => {
+                            onClick={(e) => {
+                                e.stopPropagation();
                                 setIsLocked(true);
                                 nextMarker();
                             }}
+                            onMouseDown={(e) => e.stopPropagation()}
                             className="text-white hover:text-blue-400 transition-colors p-2 hover:bg-white/10 rounded-full"
                             aria-label="Next marker"
                         >

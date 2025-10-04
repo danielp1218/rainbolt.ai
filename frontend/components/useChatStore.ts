@@ -34,6 +34,7 @@ type ChatState = {
     disconnectWebSocket: () => void;
     markSessionProcessed: (sessionId: string) => void;
     setMarkers: (markers: Marker[]) => void;
+    setCurrentMarker: (index: number) => void;
     nextMarker: () => void;
     previousMarker: () => void;
 };
@@ -65,6 +66,13 @@ export const useChatStore = create<ChatState>()(
 
             setMarkers: (markers: Marker[]) => {
                 set({ markers, currentMarker: 0 });
+            },
+
+            setCurrentMarker: (index: number) => {
+                const state = get();
+                if (index >= 0 && index < state.markers.length) {
+                    set({ currentMarker: index });
+                }
             },
 
             nextMarker: () => {
