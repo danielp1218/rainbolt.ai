@@ -14,12 +14,59 @@ interface Location {
 
 interface SimpleGlobeProps {
   markers?: Location[];
+  targetMarkerIndex?: number; // Index of marker to center on
+  isLocked?: boolean; // Whether globe is locked to marker or free to rotate
+  onUnlock?: () => void; // Callback when user clicks globe to unlock
+  onLock?: () => void; // Callback when user clicks marker to lock
+  onMarkerClick?: (index: number) => void; // Callback when marker is clicked
 }
 
-export default function SimpleGlobe({ markers = [] }: SimpleGlobeProps) {
+export default function SimpleGlobe({ markers = [], targetMarkerIndex = 0, isLocked = true, onUnlock, onLock, onMarkerClick }: SimpleGlobeProps) {
   const mountRef = useRef<HTMLDivElement>(null);
+  const animationRef = useRef<{
+    targetRotationY: number;
+    targetRotationX: number;
+    isAnimating: boolean;
+  }>({ targetRotationY: 0, targetRotationX: 0, isAnimating: false });
+  
+  // Store refs to avoid recreating Three.js scene
+  const sceneRef = useRef<{
+    scene: THREE.Scene | null;
+    camera: THREE.PerspectiveCamera | null;
+    renderer: THREE.WebGLRenderer | null;
+    globeYRotationGroup: THREE.Group | null;
+    globeXRotationGroup: THREE.Group | null;
+    markerGroup: THREE.Group | null;
+    markerMeshes: THREE.Mesh[];
+  }>({ scene: null, camera: null, renderer: null, globeYRotationGroup: null, globeXRotationGroup: null, markerGroup: null, markerMeshes: [] });
+
+  // Effect for handling target marker changes without recreating scene
+  useEffect(() => {
+    if (!isLocked || !sceneRef.current.globeYRotationGroup) return;
+    
+    function rotateToMarker(markerIndex: number) {
+      if (markerIndex < 0 || markerIndex >= markers.length) return;
+      
+      const marker = markers[markerIndex];
+      
+      // Convert lat/long to rotation angles with 80 degree Y offset
+      const offsetDegrees = 80;
+      const targetY = -(marker.long * Math.PI / 180) + (offsetDegrees * Math.PI / 180);
+      const targetX = (marker.lat * Math.PI / 180);
+      
+      animationRef.current.targetRotationY = targetY;
+      animationRef.current.targetRotationX = targetX;
+      animationRef.current.isAnimating = true;
+    }
+
+    if (markers.length > 0 && targetMarkerIndex >= 0 && targetMarkerIndex < markers.length) {
+      rotateToMarker(targetMarkerIndex);
+    }
+  }, [targetMarkerIndex, isLocked, markers.length]); // Only depend on index and length, not the array itself
 
   useEffect(() => {
+    if (!mountRef.current) return;
+
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(
       45,
@@ -27,14 +74,12 @@ export default function SimpleGlobe({ markers = [] }: SimpleGlobeProps) {
       0.1,
       1000
     );
-    camera.position.set(0, 0, 7); // Position camera to center the globe
+    camera.position.set(0, 0, 4.5); // Position camera to center the globe
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // Cap pixel ratio for performance
-    if (mountRef.current) {
-      mountRef.current.appendChild(renderer.domElement);
-    }
+    mountRef.current.appendChild(renderer.domElement);
 
     // Manual rotation variables
     let isDragging = false;
@@ -52,14 +97,15 @@ export default function SimpleGlobe({ markers = [] }: SimpleGlobeProps) {
     const elevMap = textureLoader.load("/01_earthbump1k.jpg");
     const alphaMap = textureLoader.load("/02_earthspec1k.jpg");
 
-    const globeGroup = new THREE.Group();
-    globeGroup.position.x = 0;
-    globeGroup.position.y = 0;
-    globeGroup.position.z = 0;
-    // Set rotation order to keep Y-axis vertical
-    globeGroup.rotation.order = 'XYZ';
-    scene.add(globeGroup);
-    camera.lookAt(2, 0, 0);
+    // Create separate groups for horizontal and vertical rotation
+    const globeYRotationGroup = new THREE.Group(); // Horizontal rotation (always around world Y-axis)
+    const globeXRotationGroup = new THREE.Group(); // Vertical tilt (child of Y rotation)
+    
+    globeYRotationGroup.position.set(0, 0, 0);
+    scene.add(globeYRotationGroup);
+    globeYRotationGroup.add(globeXRotationGroup);
+    
+    camera.lookAt(1.5, 0, 0);
 
     // Simple globe geometry and material - optimized
     const geo = new THREE.IcosahedronGeometry(1, 12); // Reduced from 16 to 12
@@ -74,7 +120,7 @@ export default function SimpleGlobe({ markers = [] }: SimpleGlobeProps) {
       roughness: 0.7,
     });
     const globe = new THREE.Mesh(geo, mat);
-    globeGroup.add(globe);
+    globeXRotationGroup.add(globe);
 
     // Create interactive points layer - optimized
     const detail = 50; // Reduced from 80 for better performance
@@ -154,30 +200,16 @@ export default function SimpleGlobe({ markers = [] }: SimpleGlobeProps) {
     });
 
     const points = new THREE.Points(pointsGeo, pointsMat);
-    globeGroup.add(points);
+    globeXRotationGroup.add(points);
 
-    // Add markers if provided
-    if (markers.length > 0) {
-      const markerGroup = new THREE.Group();
-      // Use shared geometry for all markers for better performance
-      const markerGeometry = new THREE.SphereGeometry(0.02, 6, 6); // Further reduced segments for performance
-      
-      markers.forEach((marker) => {
-        const [x, y, z] = latLongToVector3(marker.lat, marker.long, 1.02);
-        
-        const markerMaterial = new THREE.MeshBasicMaterial({
-          color: marker.color || '#ff0000',
-          transparent: true,
-          opacity: 0.8,
-        });
-        
-        const markerMesh = new THREE.Mesh(markerGeometry, markerMaterial);
-        markerMesh.position.set(x, y, z);
-
-        markerGroup.add(markerMesh);
-      });
-      globeGroup.add(markerGroup);
-    }
+    // Create marker group (will be populated dynamically)
+    const markerGroup = new THREE.Group();
+    globeXRotationGroup.add(markerGroup);
+    
+    // Store refs for use in other effects (after markerGroup is created)
+    sceneRef.current = { scene, camera, renderer, globeYRotationGroup, globeXRotationGroup, markerGroup, markerMeshes: [] };
+    
+    let hoveredMarker: THREE.Mesh | null = null;
 
     // Basic lighting setup
     const hemiLight = new THREE.HemisphereLight(0xffffff, 0x080820, 2);
@@ -205,6 +237,32 @@ export default function SimpleGlobe({ markers = [] }: SimpleGlobeProps) {
         globeUV.copy(intersects[0].uv);
         uniforms.mouseUV.value.copy(globeUV);
       }
+      
+      // Check for marker hover
+      if (sceneRef.current.markerMeshes.length > 0) {
+        const markerIntersects = raycaster.intersectObjects(sceneRef.current.markerMeshes, false);
+        
+        // Reset previous hovered marker
+        if (hoveredMarker && (!markerIntersects.length || markerIntersects[0].object !== hoveredMarker)) {
+          hoveredMarker.scale.setScalar(1);
+          hoveredMarker = null;
+          if (mountRef.current) {
+            mountRef.current.style.cursor = 'grab';
+          }
+        }
+        
+        // Set new hovered marker
+        if (markerIntersects.length > 0) {
+          const newHover = markerIntersects[0].object as THREE.Mesh;
+          if (newHover !== hoveredMarker) {
+            hoveredMarker = newHover;
+            hoveredMarker.scale.setScalar(1.5);
+            if (mountRef.current) {
+              mountRef.current.style.cursor = 'pointer';
+            }
+          }
+        }
+      }
     }
 
     function animate() {
@@ -219,9 +277,24 @@ export default function SimpleGlobe({ markers = [] }: SimpleGlobeProps) {
       stars.rotation.y += 0.0002;
       stars.rotation.x += 0.0001;
       
-      // Passive rotation of globe (only when not dragging)
-      if (!isDragging) {
-        globeGroup.rotation.y += 0.001;
+      // Handle smooth rotation animation to target (only when locked)
+      if (isLocked && animationRef.current.isAnimating && !isDragging) {
+        const lerpFactor = 0.05; // Smoothness of animation (lower = smoother but slower)
+        
+        // Smoothly interpolate towards target rotation
+        const deltaY = animationRef.current.targetRotationY - globeYRotationGroup.rotation.y;
+        const deltaX = animationRef.current.targetRotationX - globeYRotationGroup.rotation.x;
+        
+        globeYRotationGroup.rotation.y += deltaY * lerpFactor;
+        globeYRotationGroup.rotation.x += deltaX * lerpFactor;
+        
+        // Stop animating when close enough
+        if (Math.abs(deltaY) < 0.001 && Math.abs(deltaX) < 0.001) {
+          animationRef.current.isAnimating = false;
+        }
+      } else if (!isLocked && !isDragging && !animationRef.current.isAnimating) {
+        // Passive rotation of globe (only when unlocked, not dragging, and not animating)
+        globeYRotationGroup.rotation.y += 0.001;
       }
       
       renderer.render(scene, camera);
@@ -244,22 +317,37 @@ export default function SimpleGlobe({ markers = [] }: SimpleGlobeProps) {
         const deltaX = evt.clientX - previousMousePosition.x;
         const deltaY = evt.clientY - previousMousePosition.y;
 
-        // Allow X (vertical tilt) and Y (horizontal rotation) but lock Z to prevent slanting
-        globeGroup.rotation.y += deltaX * rotationSpeed;
-        globeGroup.rotation.x += deltaY * rotationSpeed;
-        
-        // Clamp X rotation to prevent flipping upside down
-        const maxRotation = Math.PI / 2.5; // Limit to about 72 degrees
-        globeGroup.rotation.x = Math.max(-maxRotation, Math.min(maxRotation, globeGroup.rotation.x));
-        
-        // Lock Z rotation to 0 to prevent slanting
-        globeGroup.rotation.z = 0;
+        // Horizontal rotation - always around world Y-axis
+        globeYRotationGroup.rotation.y += deltaX * rotationSpeed;
+        globeYRotationGroup.rotation.x += deltaY * rotationSpeed;
 
         previousMousePosition = { x: evt.clientX, y: evt.clientY };
       }
     }
 
     function onMouseDown(evt: MouseEvent) {
+      // Check if clicking on a marker
+      if (hoveredMarker) {
+        const markerData = hoveredMarker.userData.markerData;
+        const markerIndex = hoveredMarker.userData.markerIndex;
+        console.log('Marker clicked:', markerData);
+        
+        // Lock to this marker and notify parent
+        if (onLock) {
+          onLock();
+        }
+        if (onMarkerClick) {
+          onMarkerClick(markerIndex);
+        }
+        
+        return; // Don't start dragging if clicking a marker
+      }
+      
+      // If clicking on globe (not marker) and currently locked, unlock it
+      if (isLocked && onUnlock) {
+        onUnlock();
+      }
+      
       isDragging = true;
       previousMousePosition = { x: evt.clientX, y: evt.clientY };
     }
@@ -274,21 +362,88 @@ export default function SimpleGlobe({ markers = [] }: SimpleGlobeProps) {
       renderer.setSize(window.innerWidth, window.innerHeight);
     }
 
+    // Set initial cursor
+    if (mountRef.current) {
+      mountRef.current.style.cursor = 'grab';
+    }
+    
     window.addEventListener("mousemove", onMouseMove);
     window.addEventListener("mousedown", onMouseDown);
     window.addEventListener("mouseup", onMouseUp);
     window.addEventListener("resize", onResize);
+
+    // Initial rotation to first marker if locked
+    if (isLocked && markers.length > 0 && targetMarkerIndex >= 0 && targetMarkerIndex < markers.length) {
+      const marker = markers[targetMarkerIndex];
+      const offsetDegrees = 80;
+      const targetY = -(marker.long * Math.PI / 180) + (offsetDegrees * Math.PI / 180);
+      const targetX = (marker.lat * Math.PI / 180);
+      
+      animationRef.current.targetRotationY = targetY;
+      animationRef.current.targetRotationX = targetX;
+      animationRef.current.isAnimating = true;
+    }
 
     return () => {
       window.removeEventListener("mousemove", onMouseMove);
       window.removeEventListener("mousedown", onMouseDown);
       window.removeEventListener("mouseup", onMouseUp);
       window.removeEventListener("resize", onResize);
-      if (mountRef.current) {
-        mountRef.current.removeChild(renderer.domElement);
+      
+      const mount = mountRef.current;
+      if (mount && mount.contains(renderer.domElement)) {
+        mount.style.cursor = 'default';
+        mount.removeChild(renderer.domElement);
       }
       renderer.dispose();
+      
+      // Clear refs
+      sceneRef.current = { scene: null, camera: null, renderer: null, globeYRotationGroup: null, globeXRotationGroup: null, markerGroup: null, markerMeshes: [] };
     };
+  }, []); // Only create scene once on mount
+
+  // Effect to update markers when they change
+  useEffect(() => {
+    if (!sceneRef.current.markerGroup) return;
+
+    const markerGroup = sceneRef.current.markerGroup;
+    
+    // Clear existing markers
+    while (markerGroup.children.length > 0) {
+      const child = markerGroup.children[0];
+      markerGroup.remove(child);
+      if (child instanceof THREE.Mesh) {
+        child.geometry.dispose();
+        if (Array.isArray(child.material)) {
+          child.material.forEach(mat => mat.dispose());
+        } else {
+          child.material.dispose();
+        }
+      }
+    }
+    sceneRef.current.markerMeshes = [];
+
+    // Add new markers
+    if (markers.length > 0) {
+      const markerGeometry = new THREE.SphereGeometry(0.02, 6, 6);
+      
+      markers.forEach((marker, index) => {
+        const [x, y, z] = latLongToVector3(marker.lat, marker.long, 1.02);
+        
+        const markerMaterial = new THREE.MeshBasicMaterial({
+          color: marker.color || '#ff0000',
+          transparent: true,
+          opacity: 0.8,
+        });
+        
+        const markerMesh = new THREE.Mesh(markerGeometry, markerMaterial);
+        markerMesh.position.set(x, y, z);
+        markerMesh.userData = { markerIndex: index, markerData: marker, originalScale: 1 };
+
+        markerGroup.add(markerMesh);
+        sceneRef.current.markerMeshes.push(markerMesh);
+      });
+    }
   }, [markers]);
 
   return <div ref={mountRef} style={{ width: "100%", height: "100%" }} className="absolute inset-0" />;

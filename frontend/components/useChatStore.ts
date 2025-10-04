@@ -8,6 +8,13 @@ export type Message = {
     ts: number;
 };
 
+export type Marker = {
+    latitude: number;
+    longitude: number;
+    accuracy: number;
+    facts: string;
+};
+
 type ChatState = {
     open: boolean;
     messages: Message[];
@@ -18,12 +25,17 @@ type ChatState = {
     currentAssistantMessage: string;
     uploadedImageUrl: string | null;
     hasProcessedSession: boolean; // Track if we've already processed this session
+    markers: Marker[];
+    currentMarker: number;
     send: (text: string) => Promise<void>;
     toggle: (value?: boolean) => void;
     clear: () => void;
     connectWebSocket: (sessionId: string) => Promise<void>;
     disconnectWebSocket: () => void;
     markSessionProcessed: (sessionId: string) => void;
+    setMarkers: (markers: Marker[]) => void;
+    nextMarker: () => void;
+    previousMarker: () => void;
 };
 
 export const useChatStore = create<ChatState>()(
@@ -38,6 +50,8 @@ export const useChatStore = create<ChatState>()(
             currentAssistantMessage: '',
             uploadedImageUrl: null,
             hasProcessedSession: false,
+            markers: [],
+            currentMarker: 0,
 
             toggle: (value?: boolean) => {
                 set((state) => ({
@@ -49,31 +63,51 @@ export const useChatStore = create<ChatState>()(
                 set({ sessionId, hasProcessedSession: true });
             },
 
-            connectWebSocket: (sessionId: string) => {
-                return new Promise<void>((resolve, reject) => {
-                    // Store the image URL if provided
+            setMarkers: (markers: Marker[]) => {
+                set({ markers, currentMarker: 0 });
+            },
 
-                    console.log('Connecting to WebSocket...', { sessionId });
-                    const ws = new WebSocket(`ws://localhost:8000/ws/chat/${sessionId}`);
+            nextMarker: () => {
+                const state = get();
+                if (state.markers.length === 0) return;
+                set({ currentMarker: (state.currentMarker + 1) % state.markers.length });
+            },
 
-                    ws.onopen = () => {
-                        console.log('WebSocket connected, sending process_image request');
-                        set({ thinking: true, sessionId, ws });
+            previousMarker: () => {
+                const state = get();
+                if (state.markers.length === 0) return;
+                set({ 
+                    currentMarker: state.currentMarker === 0 
+                        ? state.markers.length - 1 
+                        : state.currentMarker - 1 
+                });
+            },
 
-                        // Send process image request
-                        const message = {
-                            type: 'process_image',
-                            session_id: sessionId
-                        };
-                        console.log('Sending message:', message);
-                        ws.send(JSON.stringify(message));
-
-                        // Wait a bit for message to be sent before resolving
-                        setTimeout(() => {
-                            console.log('Message sent, resolving promise');
-                            resolve();
-                        }, 50);
-                    };
+    connectWebSocket: (sessionId: string) => {
+        return new Promise<void>((resolve, reject) => {
+            // Store the image URL if provided
+            
+            console.log('Connecting to WebSocket...', { sessionId });
+            const ws = new WebSocket(`ws://localhost:8000/ws/chat/${sessionId}`);
+            
+            ws.onopen = () => {
+                console.log('WebSocket connected, sending process_image request');
+                set({ thinking: true, sessionId, ws });
+                
+                // Send process image request
+                const message = {
+                    type: 'process_image',
+                    session_id: sessionId
+                };
+                console.log('Sending message:', message);
+                ws.send(JSON.stringify(message));
+                
+                // Wait a bit for message to be sent before resolving
+                setTimeout(() => {
+                    console.log('Message sent, resolving promise');
+                    resolve();
+                }, 50);
+            };
 
                     ws.onmessage = (event) => {
                         const data = JSON.parse(event.data);
@@ -261,9 +295,9 @@ export const useChatStore = create<ChatState>()(
                 }
             },
 
-            clear: () => {
-                set({ messages: [], currentAssistantMessage: '', uploadedImageUrl: null, hasProcessedSession: false });
-            },
+    clear: () => {
+        set({ messages: [], currentAssistantMessage: '', uploadedImageUrl: null, hasProcessedSession: false, markers: [], currentMarker: 0 });
+    },
         }),
         {
             name: 'rainbolt-chat-storage',
@@ -272,6 +306,8 @@ export const useChatStore = create<ChatState>()(
                 sessionId: state.sessionId,
                 uploadedImageUrl: state.uploadedImageUrl,
                 hasProcessedSession: state.hasProcessedSession,
+                markers: state.markers,
+                currentMarker: state.currentMarker,
             }),
         }
     )
