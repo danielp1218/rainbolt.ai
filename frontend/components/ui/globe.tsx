@@ -16,10 +16,14 @@ interface Location {
 
 interface EarthSceneProps {
   markers?: Location[];
+  currentSection?: number;
 }
 
-export default function EarthScene({ markers = [] }: EarthSceneProps) {
+export default function EarthScene({ markers = [], currentSection = 0 }: EarthSceneProps) {
   const mountRef = useRef<HTMLDivElement>(null);
+  const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
+  const targetPosition = useRef(new THREE.Vector3(7, 0, 4));
+  const targetLookAt = useRef(new THREE.Vector3(-7.7, 0, 0));
 
   // Add Waterloo as a default marker
   const defaultMarkers: Location[] = [
@@ -41,7 +45,7 @@ export default function EarthScene({ markers = [] }: EarthSceneProps) {
       1000
     );
     camera.position.set(7, 0, 4); // Position camera to view globe
-    
+    cameraRef.current = camera;
 
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
@@ -79,17 +83,16 @@ export default function EarthScene({ markers = [] }: EarthSceneProps) {
     const headRaycaster = new THREE.Raycaster();
 
     const textureLoader = new THREE.TextureLoader();
-  const starSprite = textureLoader.load("/circle.png");
-  const otherMap = textureLoader.load("/04_rainbow1k.jpg");
-  const colorMap = textureLoader.load("/00_earthmap1k.jpg");
-  const elevMap = textureLoader.load("/01_earthbump1k.jpg");
-  const alphaMap = textureLoader.load("/02_earthspec1k.jpg");
-  const newMap = textureLoader.load("/globe-pattern.png");
+    const starSprite = textureLoader.load("/circle.png");
+    const otherMap = textureLoader.load("/04_rainbow1k.jpg");
+    const colorMap = textureLoader.load("/00_earthmap1k.jpg");
+    const elevMap = textureLoader.load("/01_earthbump1k.jpg");
+    const alphaMap = textureLoader.load("/02_earthspec1k.jpg");
 
     const globeGroup = new THREE.Group();
     globeGroup.position.x = -6;
     globeGroup.position.y = 0;
-    globeGroup.position.z = -0.5;   
+    globeGroup.position.z = -0.5;
     scene.add(globeGroup);
 
     const geo = new THREE.IcosahedronGeometry(1, 16);
@@ -115,11 +118,11 @@ export default function EarthScene({ markers = [] }: EarthSceneProps) {
       (gltf) => {
         console.log('GLB model loaded successfully:', gltf);
         emojiModel = gltf.scene; // Store reference globally
-        
+
         // Position the emoji at the WORLD center, same as globe center
         // Globe is at globeGroup position (-6, 0, -0.5), so put emoji there too
         emojiModel.position.set(-6, 0, -0.5);
-        
+
         // Make it MUCH bigger so we can definitely see it
         emojiModel.scale.set(0.8, 0.8, 0.8);
         
@@ -128,7 +131,7 @@ export default function EarthScene({ markers = [] }: EarthSceneProps) {
         emojiModel.rotation.set(0, 0, 0);
         
         // Enable rotation animation
-        
+
         // Preserve original Blender materials - don't override them
         emojiModel.traverse((child) => {
           console.log('Traversing child:', child.name, child.type);
@@ -143,16 +146,16 @@ export default function EarthScene({ markers = [] }: EarthSceneProps) {
               // DON'T override color or emissive - keep Blender materials!
             }
           }
-          
+
           // Try to find head bone/object for mouse following
-          if (child.name.toLowerCase().includes('head') || 
-              child.name.toLowerCase().includes('face') ||
-              child.name.toLowerCase().includes('skull')) {
+          if (child.name.toLowerCase().includes('head') ||
+            child.name.toLowerCase().includes('face') ||
+            child.name.toLowerCase().includes('skull')) {
             console.log('Found potential head object:', child.name);
             emojiHead = child;
           }
         });
-        
+
         // If no specific head found, use the whole model
         if (!emojiHead) {
           console.log('No specific head found, using whole model');
@@ -160,13 +163,13 @@ export default function EarthScene({ markers = [] }: EarthSceneProps) {
         } else {
           console.log('Using head object:', emojiHead);
         }
-        
+
         // Add bright point lights specifically for the emoji
         const emojiLight = new THREE.PointLight(0xffffff, 1, 100); // Increased intensity and range
         emojiLight.position.copy(emojiModel.position);
         emojiLight.position.y += 1; // Move light slightly above emoji
         scene.add(emojiLight);
-        
+
         // Add a second fill light from the front
         const emojiFillLight = new THREE.PointLight(0xffffff, 25, 100);
         emojiFillLight.position.set(
@@ -175,7 +178,7 @@ export default function EarthScene({ markers = [] }: EarthSceneProps) {
           emojiModel.position.z + 2
         );
         scene.add(emojiFillLight);
-        
+
         console.log('Adding emoji model to SCENE at position:', emojiModel.position);
         console.log('GlobeGroup position:', globeGroup.position);
         console.log('Emoji model scale:', emojiModel.scale);
@@ -193,17 +196,17 @@ export default function EarthScene({ markers = [] }: EarthSceneProps) {
     const markerGroup = new THREE.Group();
     defaultMarkers.forEach((marker) => {
       const [x, y, z] = latLongToVector3(marker.lat, marker.long, 1.02); // Slightly larger radius to place markers above surface
-      
+
       const markerGeometry = new THREE.SphereGeometry(0.02, 16, 16);
       const markerMaterial = new THREE.MeshBasicMaterial({
         color: marker.color || '#ff0000',
         transparent: true,
         opacity: 0.8,
       });
-      
+
       const markerMesh = new THREE.Mesh(markerGeometry, markerMaterial);
       markerMesh.position.set(x, y, z);
-      
+
       // Add glow effect to marker
       const markerGlowGeometry = new THREE.SphereGeometry(0.03, 16, 16);
       const markerGlowMaterial = new THREE.MeshBasicMaterial({
@@ -325,7 +328,7 @@ intensity = pow(intensity, 1.5); // Reduced exponent for larger middle gradient
     const pointsGeo = new THREE.IcosahedronGeometry(1.01, detail); // Slightly larger radius to avoid z-fighting
 
     // Shaders
-   const vertexShader = `
+    const vertexShader = `
   uniform float size;
   uniform sampler2D elevTexture;
   uniform vec2 mouseUV;
@@ -355,7 +358,7 @@ intensity = pow(intensity, 1.5); // Reduced exponent for larger middle gradient
     gl_Position = projectionMatrix * mvPosition;
   }
 `;
-const fragmentShader = `
+    const fragmentShader = `
   uniform sampler2D colorTexture;
   uniform sampler2D alphaTexture;
   uniform sampler2D otherTexture;
@@ -385,8 +388,6 @@ const fragmentShader = `
       otherTexture: { type: "t", value: otherMap },
       elevTexture: { type: "t", value: elevMap },
       alphaTexture: { type: "t", value: alphaMap },
-      newTexture: { type: "t", value: newMap },
-
       mouseUV: { type: "v2", value: new THREE.Vector2(0.0, 0.0) },
     };
 
@@ -433,6 +434,20 @@ const fragmentShader = `
     }
 
     function animate() {
+      // Smooth camera movement
+      if (cameraRef.current) {
+        cameraRef.current.position.lerp(targetPosition.current, 0.05);
+
+        // Smooth camera look-at
+        const currentLookAt = new THREE.Vector3();
+        cameraRef.current.getWorldDirection(currentLookAt);
+        currentLookAt.multiplyScalar(cameraRef.current.position.length());
+        currentLookAt.add(cameraRef.current.position);
+        currentLookAt.lerp(targetLookAt.current, 0.05);
+
+        orbitCtrl.target.copy(targetLookAt.current);
+      }
+
       renderer.render(scene, camera);
       globeGroup.rotation.y += 0.001;
       
@@ -469,14 +484,12 @@ const fragmentShader = `
       
       handleRaycast();
       orbitCtrl.update();
-      
-      // Update aurora time
-      
+
       requestAnimationFrame(animate);
     }
     animate();
 
-  function onMouseMove(evt: MouseEvent) {
+    function onMouseMove(evt: MouseEvent) {
       pointerPos.set(
         (evt.clientX / window.innerWidth) * 2 - 1,
         -(evt.clientY / window.innerHeight) * 2 + 1
@@ -529,6 +542,22 @@ const fragmentShader = `
       renderer.dispose();
     };
   }, []);
+
+  // Update camera position when section changes
+  useEffect(() => {
+    // Define camera positions for each section
+    const positions: Record<number, { position: [number, number, number]; lookAt: [number, number, number] }> = {
+      0: { position: [7, 0, 4], lookAt: [-7.7, 0, 0] },        // Hero - default view
+      1: { position: [8, 0, -8], lookAt: [-7.7, 0, 0] },          // Features - right angle
+      2: { position: [-10, 0, 0], lookAt: [-7.7, 0, 0] },         // About - left angle
+      3: { position: [8, 0, -2], lookAt: [-7.7, 0, 0] },         // Team - bottom angle
+      4: { position: [8, 0, -8], lookAt: [-7.7, 0, 0] },          // Contact - top view
+    };
+
+    const config = positions[currentSection] || positions[0];
+    targetPosition.current.set(...config.position);
+    targetLookAt.current.set(...config.lookAt);
+  }, [currentSection]);
 
   return <div ref={mountRef} style={{ width: "100%", height: "100%" }} className="absolute inset-0" />;
 }

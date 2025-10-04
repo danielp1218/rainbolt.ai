@@ -4,3 +4,5 @@ venv/
 .DS_Store
 .env
 .idea/
+uploads/
+.DS_Store
