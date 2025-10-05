@@ -1,12 +1,12 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { useAuth0Firebase } from '@/hooks/useAuth0Firebase';
 import { useGlobeSessions } from '@/hooks/useGlobeSessions';
 import { Button } from '@/components/ui/button';
 import { Navbar } from '@/components/ui/navbar';
 import { GlobeSession } from '@/lib/globe-database';
-import { Plus, Star, Globe, X, Trash2, Settings } from 'lucide-react';
+import { Plus, Star, Globe, X, Trash2, Settings, Link } from 'lucide-react';
 
 interface ConstellationNode {
   id: string;
@@ -21,15 +21,19 @@ const ConstellationNode: React.FC<{
   onMouseDown: (e: React.MouseEvent) => void;
   onClick: () => void;
   onDelete: () => void;
+  onCreateLink: () => void;
   isSettingsOpen: boolean;
   onToggleSettings: () => void;
-}> = ({ node, onMouseDown, onClick, onDelete, isSettingsOpen, onToggleSettings }) => {
+  linkCopied: boolean;
+  isLinking: boolean;
+  isLinkingFrom: boolean;
+}> = ({ node, onMouseDown, onClick, onDelete, onCreateLink, isSettingsOpen, onToggleSettings, linkCopied, isLinking, isLinkingFrom }) => {
   return (
     <div
       data-node-id={node.id}
       className={`absolute select-none ${
         node.isDragging ? 'z-50' : 'z-10'
-      }`}
+      } ${isLinking && !isLinkingFrom ? 'cursor-pointer' : ''}`}
       style={{
         left: node.position.x,
         top: node.position.y,
@@ -39,10 +43,22 @@ const ConstellationNode: React.FC<{
     >
       <div className="relative group">
         {/* Glow effect */}
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-400/20 to-purple-600/20 rounded-xl blur-md group-hover:blur-lg transition-all duration-300" />
+        <div className={`absolute inset-0 rounded-xl blur-md transition-all duration-300 ${
+          isLinkingFrom 
+            ? 'bg-gradient-to-br from-yellow-400/40 to-orange-600/40 group-hover:blur-lg animate-pulse' 
+            : isLinking && !isLinkingFrom
+            ? 'bg-gradient-to-br from-green-400/30 to-blue-600/30 group-hover:blur-lg group-hover:from-green-400/50 group-hover:to-blue-600/50'
+            : 'bg-gradient-to-br from-blue-400/20 to-purple-600/20 group-hover:blur-lg'
+        }`} />
         
         {/* Main card container */}
-        <div className="relative bg-white/5 backdrop-blur-md border border-white/10 rounded-xl w-48 overflow-hidden">
+        <div className={`relative backdrop-blur-md border rounded-xl w-48 overflow-hidden ${
+          isLinkingFrom
+            ? 'bg-yellow-500/10 border-yellow-400/30'
+            : isLinking && !isLinkingFrom
+            ? 'bg-green-500/10 border-green-400/30 hover:bg-green-500/20'
+            : 'bg-white/5 border-white/10'
+        }`}>
           {/* Draggable Handle Bar */}
           <div 
             className="bg-gradient-to-r from-blue-500/40 to-purple-500/40 border-b border-white/10 p-2 hover:from-blue-500/60 hover:to-purple-500/60 transition-colors duration-100"
@@ -85,6 +101,16 @@ const ConstellationNode: React.FC<{
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
+                      onCreateLink();
+                    }}
+                    className="p-1 rounded hover:bg-blue-500/30 transition-colors group"
+                    title={linkCopied ? "Link copied!" : "Create shareable link"}
+                  >
+                    <Link className={`w-3 h-3 transition-colors ${linkCopied ? 'text-green-400' : 'text-white/60 group-hover:text-blue-400'}`} />
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
                       onToggleSettings();
                     }}
                     className="p-1 rounded hover:bg-white/20 transition-colors group"
@@ -100,7 +126,12 @@ const ConstellationNode: React.FC<{
           {/* Clickable content area */}
           <div 
             className="p-4 cursor-pointer hover:bg-white/5 transition-colors duration-100"
-            onClick={onClick}
+            onClick={(e) => {
+              if (isLinking) {
+                e.stopPropagation();
+              }
+              onClick();
+            }}
           >
             {/* Status indicator */}
             <div className="absolute -top-2 -right-2">
@@ -149,6 +180,19 @@ export default function LearningPage() {
   const [selectedSession, setSelectedSession] = useState<GlobeSession | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [settingsOpenNodeId, setSettingsOpenNodeId] = useState<string | null>(null);
+  const [deleteConfirmation, setDeleteConfirmation] = useState<{
+    isOpen: boolean;
+    sessionId: string;
+    sessionTitle: string;
+  }>({ isOpen: false, sessionId: '', sessionTitle: '' });
+  const [linkCopiedId, setLinkCopiedId] = useState<string | null>(null);
+  
+  // State for visual linking
+  const [isLinking, setIsLinking] = useState(false);
+  const [linkingFromNodeId, setLinkingFromNodeId] = useState<string | null>(null);
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const [linkingFromPosition, setLinkingFromPosition] = useState({ x: 0, y: 0 });
+  
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0});
   const [draggingNodeId, setDraggingNodeId] = useState<string | null>(null);
   const canvasRef = useRef<HTMLDivElement>(null);
@@ -158,6 +202,52 @@ export default function LearningPage() {
   useEffect(() => {
     nodesRef.current = nodes;
   }, [nodes]);
+
+  // Add keyboard event listener for ESC key to cancel linking
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isLinking) {
+        console.log('ESC pressed, canceling link');
+        setIsLinking(false);
+        setLinkingFromNodeId(null);
+        setLinkingFromPosition({ x: 0, y: 0 });
+      }
+    };
+
+    if (isLinking) {
+      document.addEventListener('keydown', handleKeyDown);
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isLinking]);
+
+  // Add global click listener to cancel linking mode
+  useEffect(() => {
+    const handleGlobalClick = (e: MouseEvent) => {
+      if (!isLinking) return;
+      
+      // Check if the click is on a constellation node
+      const target = e.target as HTMLElement;
+      const isNodeClick = target.closest('[data-node-id]');
+      
+      if (!isNodeClick) {
+        console.log('Global click outside nodes, canceling link');
+        setIsLinking(false);
+        setLinkingFromNodeId(null);
+        setLinkingFromPosition({ x: 0, y: 0 });
+      }
+    };
+
+    if (isLinking) {
+      document.addEventListener('click', handleGlobalClick, true); // Use capture phase
+    }
+
+    return () => {
+      document.removeEventListener('click', handleGlobalClick, true);
+    };
+  }, [isLinking]);
 
   // Initialize constellation nodes when sessions are loaded
   useEffect(() => {
@@ -203,10 +293,20 @@ export default function LearningPage() {
   };
 
   const handleMouseMove = (e: React.MouseEvent) => {
-    if (!draggingNodeId) return;
-    
     const rect = canvasRef.current?.getBoundingClientRect();
     if (!rect) return;
+
+    // Always update mouse position for linking mode
+    if (isLinking) {
+      // For fixed positioning, use clientX/Y directly since it's relative to viewport
+      setMousePosition({
+        x: e.clientX,
+        y: e.clientY
+      });
+    }
+
+    // Handle dragging if there's a dragging node
+    if (!draggingNodeId) return;
 
     const newX = e.clientX - rect.left - dragOffset.x;
     const newY = e.clientY - rect.top - dragOffset.y;
@@ -261,21 +361,90 @@ export default function LearningPage() {
     setSettingsOpenNodeId(prev => prev === nodeId ? null : nodeId);
   };
 
+  const handleCreateLink = async (sessionId: string) => {
+    // Find the node position to start the visual link from
+    const node = nodes.find(n => n.id === sessionId);
+    if (!node) return;
+
+    // Get canvas position relative to viewport
+    const rect = canvasRef.current?.getBoundingClientRect();
+    if (!rect) return;
+
+    // Calculate the center position of the node in viewport coordinates
+    const nodePosition = {
+      x: rect.left + node.position.x + 100, // Canvas offset + node position + half node width
+      y: rect.top + node.position.y + 100   // Canvas offset + node position + half node height
+    };
+
+    // Start visual linking mode
+    setIsLinking(true);
+    setLinkingFromNodeId(sessionId);
+    setLinkingFromPosition(nodePosition);
+    setMousePosition(nodePosition); // Initialize mouse position to node center
+    setSettingsOpenNodeId(null); // Close settings when starting to link
+  };
+
+  const handleCompleteLink = (targetSessionId: string) => {
+    if (!isLinking || !linkingFromNodeId || linkingFromNodeId === targetSessionId) return;
+    
+    // Here you could add logic to actually create a connection between sessions
+    console.log(`Creating link from ${linkingFromNodeId} to ${targetSessionId}`);
+    
+    // Reset linking mode
+    setIsLinking(false);
+    setLinkingFromNodeId(null);
+    setLinkingFromPosition({ x: 0, y: 0 });
+  };
+
+  const handleCancelLink = () => {
+    setIsLinking(false);
+    setLinkingFromNodeId(null);
+    setLinkingFromPosition({ x: 0, y: 0 });
+  };
+
   const handleDeleteSession = async (sessionId: string) => {
+    const session = sessions.find(s => s.id === sessionId);
+    if (session) {
+      setDeleteConfirmation({
+        isOpen: true,
+        sessionId,
+        sessionTitle: session.title
+      });
+    }
+  };
+
+  const confirmDeleteSession = async () => {
     try {
-      // Show a confirmation dialog
-      if (window.confirm('Are you sure you want to delete this session? This action cannot be undone.')) {
-        await deleteSession(sessionId);
-        // Remove from nodes state
-        setNodes(prev => prev.filter(node => node.id !== sessionId));
-        // Close settings if this node had settings open
-        setSettingsOpenNodeId(null);
-      }
+      await deleteSession(deleteConfirmation.sessionId);
+      // Remove from nodes state
+      setNodes(prev => prev.filter(node => node.id !== deleteConfirmation.sessionId));
+      // Close settings if this node had settings open
+      setSettingsOpenNodeId(null);
+      // Close confirmation modal
+      setDeleteConfirmation({ isOpen: false, sessionId: '', sessionTitle: '' });
     } catch (error) {
       console.error('Failed to delete session:', error);
       // You can add error handling UI here
     }
   };
+
+  const cancelDeleteSession = () => {
+    setDeleteConfirmation({ isOpen: false, sessionId: '', sessionTitle: '' });
+  };
+
+  // Handle escape key for delete confirmation modal
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && deleteConfirmation.isOpen) {
+        cancelDeleteSession();
+      }
+    };
+
+    if (deleteConfirmation.isOpen) {
+      document.addEventListener('keydown', handleEscape);
+      return () => document.removeEventListener('keydown', handleEscape);
+    }
+  }, [deleteConfirmation.isOpen]);
 
   const handleCreateNewSession = async () => {
     try {
@@ -323,7 +492,16 @@ export default function LearningPage() {
   }
 
   return (
-    <div className="min-h-screen bg-black text-white overflow-hidden">
+    <div 
+      className="min-h-screen bg-black text-white overflow-hidden"
+      onClick={(e) => {
+        // Backup click handler for canceling linking mode
+        if (isLinking && e.target === e.currentTarget) {
+          console.log('Outer container clicked, canceling link');
+          handleCancelLink();
+        }
+      }}
+    >
       <Navbar currentSection={0} />
       
       {/* Constellation Canvas */}
@@ -334,9 +512,15 @@ export default function LearningPage() {
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
         onClick={(e) => {
+          console.log('Canvas clicked', e.target, e.currentTarget, e.target === e.currentTarget);
           // Close settings when clicking on empty canvas
           if (e.target === e.currentTarget) {
             setSettingsOpenNodeId(null);
+            // Cancel linking mode when clicking on empty space
+            if (isLinking) {
+              console.log('Canceling link from canvas click');
+              handleCancelLink();
+            }
           }
         }}
         style={{
@@ -346,10 +530,23 @@ export default function LearningPage() {
             radial-gradient(circle at 50% 50%, rgba(128, 0, 128, 0.05) 0%, transparent 70%),
             #000
           `,
+          cursor: isLinking ? 'crosshair' : 'default'
         }}
       >
         {/* Starfield Background */}
-        <div className="absolute inset-0 overflow-hidden">
+        <div 
+          className="absolute inset-0 overflow-hidden"
+          onClick={(e) => {
+            console.log('Starfield clicked');
+            if (isLinking) {
+              console.log('Canceling link from starfield click');
+              setIsLinking(false);
+              setLinkingFromNodeId(null);
+              setLinkingFromPosition({ x: 0, y: 0 });
+            }
+            setSettingsOpenNodeId(null);
+          }}
+        >
           {Array.from({ length: 100 }).map((_, i) => (
             <Star
               key={i}
@@ -390,16 +587,38 @@ export default function LearningPage() {
             key={node.id}
             node={node}
             onMouseDown={(e) => handleMouseDown(e, node.id)}
-            onClick={() => setSelectedSession(node.session)}
+            onClick={() => {
+              if (isLinking && linkingFromNodeId !== node.id) {
+                handleCompleteLink(node.id);
+              } else {
+                setSelectedSession(node.session);
+              }
+            }}
             onDelete={() => handleDeleteSession(node.id)}
+            onCreateLink={() => handleCreateLink(node.id)}
             isSettingsOpen={settingsOpenNodeId === node.id}
             onToggleSettings={() => handleToggleSettings(node.id)}
+            linkCopied={linkCopiedId === node.id}
+            isLinking={isLinking}
+            isLinkingFrom={linkingFromNodeId === node.id}
           />
         ))}
 
         {/* Empty State */}
         {sessions.length === 0 && (
-          <div className="absolute inset-0 flex items-center justify-center">
+          <div 
+            className="absolute inset-0 flex items-center justify-center"
+            onClick={(e) => {
+              console.log('Empty state clicked');
+              if (isLinking && e.target === e.currentTarget) {
+                console.log('Canceling link from empty state click');
+                setIsLinking(false);
+                setLinkingFromNodeId(null);
+                setLinkingFromPosition({ x: 0, y: 0 });
+              }
+              setSettingsOpenNodeId(null);
+            }}
+          >
             <div className="text-center max-w-md">
               <div className="mb-6">
                 <Star className="w-16 h-16 text-white/30 mx-auto mb-4" />
@@ -449,6 +668,49 @@ export default function LearningPage() {
         </svg>
       </div>
 
+      {/* Visual Linking Thread */}
+      {isLinking && (
+        <svg className="fixed inset-0 pointer-events-none" style={{ zIndex: 999999, position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh' }}>
+          <defs>
+            <filter id="glow">
+              <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+              <feMerge> 
+                <feMergeNode in="coloredBlur"/>
+                <feMergeNode in="SourceGraphic"/>
+              </feMerge>
+            </filter>
+          </defs>
+          {/* Main linking line */}
+          <line
+            x1={linkingFromPosition.x}
+            y1={linkingFromPosition.y}
+            x2={mousePosition.x}
+            y2={mousePosition.y}
+            stroke="rgba(255, 255, 255, 0.9)"
+            strokeWidth="3"
+            filter="url(#glow)"
+            className="animate-pulse"
+          />
+          {/* Sparkle effects along the line */}
+          <circle
+            cx={linkingFromPosition.x + (mousePosition.x - linkingFromPosition.x) * 0.3}
+            cy={linkingFromPosition.y + (mousePosition.y - linkingFromPosition.y) * 0.3}
+            r="2"
+            fill="rgba(255, 255, 255, 0.8)"
+            filter="url(#glow)"
+            className="animate-ping"
+          />
+          <circle
+            cx={linkingFromPosition.x + (mousePosition.x - linkingFromPosition.x) * 0.7}
+            cy={linkingFromPosition.y + (mousePosition.y - linkingFromPosition.y) * 0.7}
+            r="1.5"
+            fill="rgba(255, 255, 255, 0.6)"
+            filter="url(#glow)"
+            className="animate-pulse"
+          />
+        </svg>
+      )}
+
       {/* Session Detail Modal */}
       {selectedSession && (
         <SessionDetailModal 
@@ -463,6 +725,63 @@ export default function LearningPage() {
           onClose={() => setShowCreateModal(false)}
           onCreateSession={createSessionWithTitle}
         />
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirmation.isOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              cancelDeleteSession();
+            }
+          }}
+        >
+          <div className="bg-gray-900/95 backdrop-blur-md border border-red-500/30 rounded-2xl p-8 max-w-md w-full mx-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="text-center">
+              {/* Warning Icon */}
+              <div className="mx-auto flex items-center justify-center w-16 h-16 rounded-full bg-red-500/20 mb-6">
+                <Trash2 className="w-8 h-8 text-red-400" />
+              </div>
+              
+              {/* Title */}
+              <h3 className="text-2xl font-bold text-white mb-3">
+                Delete Session
+              </h3>
+              
+              {/* Warning Message */}
+              <p className="text-white/70 mb-2">
+                Are you sure you want to delete
+              </p>
+              <p className="text-white font-semibold mb-6 break-words">
+                "{deleteConfirmation.sessionTitle}"?
+              </p>
+              
+              <p className="text-red-400/80 text-sm mb-8">
+                This action cannot be undone. All your globe images and chat history will be permanently lost.
+              </p>
+              
+              {/* Action Buttons */}
+              <div className="flex gap-3">
+                <Button
+                  variant="outline"
+                  onClick={cancelDeleteSession}
+                  className="flex-1 border-white/20 text-white hover:bg-white/10"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={confirmDeleteSession}
+                  className="flex-1 bg-red-600 hover:bg-red-700 text-white border-0"
+                >
+                  Delete Forever
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
