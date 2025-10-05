@@ -31,6 +31,7 @@ export const UploadModal: React.FC<UploadModalProps> = ({ isOpen, onClose }) => 
   const [error, setError] = useState<string | null>(null);
   const [dragActive, setDragActive] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
+  const [title, setTitle] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleFile = (selectedFile: File) => {
@@ -76,6 +77,10 @@ export const UploadModal: React.FC<UploadModalProps> = ({ isOpen, onClose }) => 
   };
 
   const handleUpload = async () => {
+    if (!title.trim()) {
+      setError('Please enter a session title');
+      return;
+    }
     if (!file) {
       setError('Please select a file first');
       return;
@@ -87,6 +92,7 @@ export const UploadModal: React.FC<UploadModalProps> = ({ isOpen, onClose }) => 
     try {
       const formData = new FormData();
       formData.append('file', file);
+      formData.append('title', title);
 
       const response = await fetch('/api/upload', {
         method: 'POST',
@@ -122,6 +128,7 @@ export const UploadModal: React.FC<UploadModalProps> = ({ isOpen, onClose }) => 
     setFile(null);
     setPreview(null);
     setError(null);
+    setTitle('');
     if (inputRef.current) {
       inputRef.current.value = '';
     }
@@ -138,10 +145,27 @@ export const UploadModal: React.FC<UploadModalProps> = ({ isOpen, onClose }) => 
     <Dialog
       isOpen={isOpen}
       onClose={handleClose}
-      title="Upload Image"
-      description="Upload an image to start a new geolocation session"
+      title="Create New Session"
+      description="Name your session and upload an image to begin"
     >
       <div className="space-y-6">
+        {/* Session Title Input */}
+        <div>
+          <label htmlFor="sessionTitle" className="block text-sm font-medium text-white/80 mb-2">
+            Session Title
+          </label>
+          <input
+            id="sessionTitle"
+            type="text"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Enter a title for your learning session..."
+            className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            disabled={uploading}
+            autoFocus
+          />
+        </div>
+
         {/* Upload Box */}
         <div
           className={`
