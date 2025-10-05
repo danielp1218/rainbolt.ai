@@ -4,8 +4,8 @@ import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { useAuth0Firebase } from '@/hooks/useAuth0Firebase';
 import { useGlobeSessions } from '@/hooks/useGlobeSessions';
 import { useSessionLinks } from '@/hooks/useSessionLinks';
-import { Button } from '@/components/ui/button';
-import { Navbar } from '@/components/ui/navbar';
+import { Button } from '@/components/ui/Button';
+import { Navbar } from '@/components/ui/Navbar';
 import { GlobeSession, deleteSessionLinks } from '@/lib/globe-database';
 import { Plus, Star, Globe, X, Trash2, Settings, Link } from 'lucide-react';
 

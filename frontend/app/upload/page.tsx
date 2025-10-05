@@ -2,7 +2,7 @@
 
 import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/Button";
 import { useChatStore } from '@/components/useChatStore';
 import "../glow.css";
 

@@ -2,12 +2,12 @@
 
 import { useEffect, useState, useRef } from "react";
 import { useSearchParams } from "next/navigation";
-import SimpleGlobe from "@/components/ui/simple-globe";
+import SimpleGlobe from "@/components/ui/SimpleGlobe";
 import { ChatHeader } from "@/components/ChatHeader";
 import { ChatHistory } from "@/components/ChatHistory";
 import { ChatComposer } from "@/components/ChatComposer";
 import { useChatStore } from "@/components/useChatStore";
-import LoginComponent from "@/components/ui/Login_component";
+import LoginComponent from "@/components/ui/LoginComponent";
 
 
 export default function ChatPage() {
@@ -159,9 +159,9 @@ export default function ChatPage() {
         : null;
 
     return (
-        <div className="relative h-screen w-screen overflow-hidden bg-black">
+        <div className="relative h-screen w-screen bg-black flex">
             {/* Globe - Moved further to the right */}
-            <div className="absolute inset-0 right-[420px] flex items-center justify-center">
+            <div className="flex-1 relative flex items-center justify-center overflow-hidden">
                 <div className="w-full h-full">
                     <SimpleGlobe 
                         markers={globeMarkers} 
@@ -177,7 +177,11 @@ export default function ChatPage() {
 
                 {/* Location Facts Popup - Left Side */}
                 {isLocked && currentMarkerData && (
-                    <div className="absolute left-8 top-1/2 transform -translate-y-1/2 w-80 bg-black/90 backdrop-blur-md rounded-lg border border-white/20 shadow-2xl z-10 pointer-events-auto max-h-[80vh] flex flex-col">
+                    <div 
+                        className="absolute left-8 top-1/2 transform -translate-y-1/2 w-80 bg-black/90 backdrop-blur-md rounded-lg border border-white/20 shadow-2xl z-10 pointer-events-auto max-h-[80vh] flex flex-col"
+                        onClick={(e) => e.stopPropagation()}
+                        onMouseDown={(e) => e.stopPropagation()}
+                    >
                         <div className="flex-shrink-0 p-6 pb-4">
                             <div className="flex items-start gap-3 mb-4">
                                 <div className="flex-shrink-0">
@@ -188,7 +192,20 @@ export default function ChatPage() {
                                     </div>
                                 </div>
                                 <div className="flex-1">
-                                    <h3 className="text-white font-semibold text-lg mb-1">Location {currentMarker + 1}</h3>
+                                    <div className="flex items-center justify-between mb-1">
+                                        <h3 className="text-white font-semibold text-lg">{currentMarkerData.name}</h3>
+                                        <a
+                                            href={`https://www.google.com/maps/place/${currentMarkerData.latitude},${currentMarkerData.longitude}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-white/60 hover:text-blue-400 transition-colors p-1.5 hover:bg-white/10 rounded"
+                                            title="Open in Google Maps"
+                                        >
+                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                            </svg>
+                                        </a>
+                                    </div>
                                     <div className="flex items-center gap-2 text-white/60 text-xs">
                                         <span>{currentMarkerData.latitude.toFixed(4)}°N</span>
                                         <span>•</span>
@@ -219,7 +236,7 @@ export default function ChatPage() {
                                         <span className="text-white/50 text-xs uppercase tracking-wider">Analysis</span>
                                         <div className="flex-1 h-px bg-white/10"></div>
                                     </div>
-                                    <p className="text-white/80 text-sm leading-relaxed">
+                                    <p className="text-white/80 text-sm leading-relaxed max-h-30 overflow-y-auto">
                                         {currentMarkerData.facts}
                                     </p>
                                 </div>
@@ -308,7 +325,7 @@ export default function ChatPage() {
             </div>
 
             {/* Fixed Chat Panel - Right Side */}
-            <div className="absolute top-0 right-0 bottom-0 w-[420px] flex flex-col bg-black/95 border-l border-white/10 shadow-2xl">
+            <div className="fixed top-0 right-0 bottom-0 w-[420px] flex flex-col bg-black/95 border-l border-white/10 shadow-2xl">
                 {/* Modified header without close button */}
                 <div className="flex-shrink-0 border-b border-white/20 p-4 bg-black/60">
                     <div className="flex items-center gap-2">
