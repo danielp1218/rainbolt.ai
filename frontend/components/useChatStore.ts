@@ -146,12 +146,13 @@ export const useChatStore = create<ChatState>()(
                 });
                 
                 // Still connect WebSocket for chat functionality, but don't process image again
-                let backendWs = process.env.NEXT_PUBLIC_BACKEND_WS || 'ws://localhost:8000';
-                
-                // If we're on HTTPS and trying to connect to ws://, upgrade to wss://
-                if (typeof window !== 'undefined' && window.location.protocol === 'https:' && backendWs.startsWith('ws://')) {
-                    console.warn('Page is served over HTTPS but WebSocket URL uses ws://, upgrading to wss://');
-                    backendWs = backendWs.replace('ws://', 'wss://');
+                let backendWs: string;
+                if (typeof window !== 'undefined' && window.location.protocol === 'https:') {
+                    // In production (HTTPS), use the same domain as the frontend
+                    backendWs = `wss://api.${window.location.host}`;
+                } else {
+                    // In development, use the env var or default to localhost
+                    backendWs = process.env.NEXT_PUBLIC_BACKEND_WS || 'ws://localhost:8000';
                 }
                 
                 console.log('WebSocket URL (existing session):', `${backendWs}/ws/chat/${sessionId}`);
@@ -333,12 +334,13 @@ export const useChatStore = create<ChatState>()(
             set({ sessionId, hasProcessedSession: true });
             
             // Determine the correct WebSocket protocol based on the page protocol
-            let backendWs = process.env.NEXT_PUBLIC_BACKEND_WS || 'ws://localhost:8000';
-            
-            // If we're on HTTPS and trying to connect to ws://, upgrade to wss://
-            if (typeof window !== 'undefined' && window.location.protocol === 'https:' && backendWs.startsWith('ws://')) {
-                console.warn('Page is served over HTTPS but WebSocket URL uses ws://, upgrading to wss://');
-                backendWs = backendWs.replace('ws://', 'wss://');
+            let backendWs: string;
+            if (typeof window !== 'undefined' && window.location.protocol === 'https:') {
+                // In production (HTTPS), use the same domain as the frontend
+                backendWs = `wss://${window.location.host}`;
+            } else {
+                // In development, use the env var or default to localhost
+                backendWs = process.env.NEXT_PUBLIC_BACKEND_WS || 'ws://localhost:8000';
             }
             
             console.log('WebSocket URL:', `${backendWs}/ws/chat/${sessionId}`);
