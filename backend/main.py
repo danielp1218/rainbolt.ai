@@ -120,9 +120,22 @@ async def get_mapillary_images_endpoint(request: MapillaryRequest):
             "images": images,
             "count": len(images)
         }
+    except ValueError as e:
+        # API key not set - return empty list instead of error
+        print(f"Mapillary API key not configured: {e}")
+        return {
+            "success": True,
+            "images": [],
+            "count": 0
+        }
     except Exception as e:
         print(f"Error fetching Mapillary images: {e}")
-        raise HTTPException(status_code=500, detail=f"Error fetching Mapillary images: {str(e)}")
+        # Return empty list instead of raising error
+        return {
+            "success": True,
+            "images": [],
+            "count": 0
+        }
 
 
 @app.websocket("/ws/chat/{session_id}")
@@ -190,15 +203,11 @@ async def websocket_chat(websocket: WebSocket, session_id: str):
                         image
                     )
                     
+                    # Append chunks to full response
                     response = ""
                     for chunk in response_stream:
                         chunk_text = chunk.content
                         response += chunk_text
-
-                    await manager.send_message(session_id, {
-                        "type": "chat_response_chunk",
-                        "text": response
-                    })
 
                     # Handle recalculation trigger
                     if "__output__coordinates__" in response:
@@ -207,13 +216,19 @@ async def websocket_chat(websocket: WebSocket, session_id: str):
                             "type": "chat_response_coordinates", 
                             "text": "Recalculating coordinates..."
                         })
+                        
                         # Recalculate coordinates
                         new_coords = estimate_coordinates(response)
                         await manager.send_message(session_id, {
                             "type": "coordinates",
                             "text": new_coords
                         })
-                    
+
+                    await manager.send_message(session_id, {
+                        "type": "chat_response_chunk",
+                        "text": response
+                    })
+
                     await manager.send_message(session_id, {
                         "type": "complete",
                         "message": "Response complete"

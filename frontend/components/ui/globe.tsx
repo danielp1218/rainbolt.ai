@@ -32,12 +32,13 @@ export default function EarthScene({ markers = [], currentSection = 0, onWaterlo
   const globeRef = useRef<THREE.Mesh | null>(null);
   const connectionLineRef = useRef<THREE.Line | null>(null);
   const waterlooScreenPos = useRef({ x: 0, y: 0 });
+  const waterlooLabelRef = useRef<HTMLDivElement | null>(null);
 
 
   // Add Waterloo as a default marker
-const defaultMarkers = [
-  { lat: 43.4643, long: -80.5204, label: "Waterloo, Canada" },
-];  useEffect(() => {
+  const defaultMarkers = [
+    { lat: 43.4643, long: -80.5204, label: "Waterloo, Canada" },
+  ]; useEffect(() => {
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(
       45,
@@ -66,12 +67,12 @@ const defaultMarkers = [
     const raycaster = new THREE.Raycaster();
     const pointerPos = new THREE.Vector2();
     const globeUV = new THREE.Vector2();
-    
+
     // Mouse tracking for emoji lookAt calculations
     const mouse = new THREE.Vector2();
     const emojiRaycaster = new THREE.Raycaster();
     const targetPoint = new THREE.Vector3();
-    
+
     // Store reference to emoji for mouse following
     let emojiModel: THREE.Group | null = null;
     let emojiHead: THREE.Object3D | null = null;
@@ -122,15 +123,15 @@ const defaultMarkers = [
 
         // Position the emoji at the WORLD center, same as globe center
         // Globe is at globeGroup position (-6, 0, -0.5), so put emoji there too
-        emojiModel.position.set(-6, 0, -0.5);
+        emojiModel.position.set(-5.8, 0, -0.5);
 
         // Make it MUCH bigger so we can definitely see it
-        emojiModel.scale.set(0.8, 0.8, 0.8);
-        
+        emojiModel.scale.set(0.3, 0.3, 0.3);
+
         // Store the original rotation to account for model facing -Y in Blender
         // Don't apply fixed rotation - let lookAt() handle full orientation
         emojiModel.rotation.set(0, 0, 0);
-        
+
         // Enable rotation animation
 
         // Preserve original Blender materials - don't override them
@@ -172,7 +173,7 @@ const defaultMarkers = [
         scene.add(emojiLight);
 
         // Add a second fill light from the front
-        const emojiFillLight = new THREE.PointLight(0xffffff, 25, 100);
+        const emojiFillLight = new THREE.PointLight(0xffffff, 15, 100);
         emojiFillLight.position.set(
           emojiModel.position.x + 2, // In front of emoji
           emojiModel.position.y,
@@ -225,7 +226,7 @@ const defaultMarkers = [
     // Create connection line from Waterloo marker to UI badge (only visible in Team section)
     const [waterlooX, waterlooY, waterlooZ] = latLongToVector3(43.4643, -80.5204, 1.02);
     const waterlooWorldPos = new THREE.Vector3(waterlooX, waterlooY, waterlooZ);
-    
+
     // Create line geometry - starts at Waterloo, extends toward screen right
     const lineGeometry = new THREE.BufferGeometry();
     const linePoints = [
@@ -233,18 +234,66 @@ const defaultMarkers = [
       new THREE.Vector3(waterlooX + 2, waterlooY + 0.5, waterlooZ + 1) // Extend toward UI badge area
     ];
     lineGeometry.setFromPoints(linePoints);
-    
+
     const lineMaterial = new THREE.LineBasicMaterial({
       color: 0xffffff,
       transparent: true,
       opacity: 0.6,
       linewidth: 2
     });
-    
+
     const connectionLine = new THREE.Line(lineGeometry, lineMaterial);
     connectionLine.visible = false; // Initially hidden
     connectionLineRef.current = connectionLine;
     globeGroup.add(connectionLine);
+
+    // Create Waterloo text label (visible on Team section)
+    const waterlooLabel = document.createElement('div');
+    waterlooLabel.className = 'waterloo-label';
+    waterlooLabel.style.cssText = `
+      position: fixed;
+      background: rgba(0, 0, 0, 0.92);
+      color: white;
+      padding: 28px 32px;
+      border-radius: 16px;
+      font-family: Inter, system-ui, sans-serif;
+      pointer-events: none;
+      display: none;
+      z-index: 100;
+      min-width: 450px;
+      max-width: 520px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(10px);
+    `;
+    waterlooLabel.innerHTML = `
+      <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 16px;">
+        <div style="width: 56px; height: 56px; background: rgba(59, 130, 246, 0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="rgb(59, 130, 246)" stroke-width="2">
+            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+            <circle cx="12" cy="10" r="3"></circle>
+          </svg>
+        </div>
+        <div>
+          <div style="font-size: 26px; font-weight: 700; margin-bottom: 4px;">Waterloo, Canada</div>
+          <div style="font-size: 14px; color: rgba(255, 255, 255, 0.6);">43.4643°N • -80.5204°W</div>
+        </div>
+      </div>
+      <div style="font-size: 15px; line-height: 1.7; color: rgba(255, 255, 255, 0.85); margin-top: 16px;">
+        Home to the University of Waterloo, one of Canada's leading tech universities. Known for its innovation ecosystem, startup culture, and producing top engineering talent. The birthplace of rainbolt.ai.
+      </div>
+      <div style="margin-top: 20px; border-radius: 10px; overflow: hidden; border: 1px solid rgba(255, 255, 255, 0.1);">
+        <img 
+          src="/uw-sign-dp-scaled.jpeg" 
+          alt="University of Waterloo" 
+          style="width: 100%; height: auto; display: block; object-fit: cover;"
+        />
+      </div>
+    `;
+    waterlooLabelRef.current = waterlooLabel;
+    if (mountRef.current) {
+      mountRef.current.appendChild(waterlooLabel);
+    }
 
     // Add glow effect
     const glowVertexShader = `
@@ -314,7 +363,7 @@ intensity = pow(intensity, 1.5); // Reduced exponent for larger middle gradient
       // Tail particles (fading)
       const tail: THREE.Mesh[] = [];
       const tailLength = 15; // Increased from 8 to make longerhead streaks
-      
+
       for (let i = 0; i < tailLength; i++) {
         const tailGeometry = new THREE.SphereGeometry(0.015 - (i * 0.0003), 6, 6); // Smaller size reduction
         const opacity = 1.0 - (i / tailLength) * 0.9; // Fade from 1.0 to 0.1
@@ -471,17 +520,17 @@ intensity = pow(intensity, 1.5); // Reduced exponent for larger middle gradient
       if (emojiModel) {
         // Cast ray from camera through mouse position
         emojiRaycaster.setFromCamera(mouse, camera);
-        
+
         // Get cursor point in 3D space at distance 1 from camera
         const cursorPoint = new THREE.Vector3();
         emojiRaycaster.ray.at(1, cursorPoint); // 1 unit out from camera
-        
+
         // Calculate direction from emoji to cursor point
         const direction = cursorPoint.clone().sub(emojiModel.position).normalize();
-        
+
         // Create target point by moving from emoji position in direction of cursor
         const targetPoint = emojiModel.position.clone().add(direction);
-        
+
         // Make emoji look at the target point (toward cursor)
         emojiModel.lookAt(targetPoint);
       }
@@ -490,22 +539,40 @@ intensity = pow(intensity, 1.5); // Reduced exponent for larger middle gradient
       if (currentSectionRef.current === 3) {
         const [waterlooX, waterlooY, waterlooZ] = latLongToVector3(43.4643, -80.5204, 1.02);
         const waterlooWorldPos = new THREE.Vector3(waterlooX, waterlooY, waterlooZ);
-        
+
         // Apply globe group transformations
         waterlooWorldPos.applyMatrix4(globeGroup.matrixWorld);
-        
+
         // Project to screen coordinates
         const vector = waterlooWorldPos.clone().project(camera);
-        
+
         // Convert to screen pixels
         const x = (vector.x * 0.5 + 0.5) * window.innerWidth;
         const y = (vector.y * -0.5 + 0.5) * window.innerHeight;
-        
+
         waterlooScreenPos.current = { x, y };
+
+        // Update Waterloo label position
+        if (waterlooLabelRef.current) {
+          const isVisible = vector.z < 1; // Check if marker is in front of camera
+          if (isVisible) {
+            waterlooLabelRef.current.style.display = 'block';
+            waterlooLabelRef.current.style.left = `${x + 40}px`; // Position to the right of marker
+            waterlooLabelRef.current.style.top = `${y - 80}px`; // Position above the marker with more offset
+            waterlooLabelRef.current.style.transform = 'translateX(0)'; // No horizontal centering
+          } else {
+            waterlooLabelRef.current.style.display = 'none';
+          }
+        }
+      } else {
+        // Hide label on other sections
+        if (waterlooLabelRef.current) {
+          waterlooLabelRef.current.style.display = 'none';
+        }
       }
 
       renderer.render(scene, camera);
-      
+
       // Handle rotation: either animate to target rotation (Team section) or continue normal rotation
       if (currentSectionRef.current === 3) {
         // Fast rotate to bring Waterloo to the front and tilt downwards
@@ -519,25 +586,25 @@ intensity = pow(intensity, 1.5); // Reduced exponent for larger middle gradient
         globeGroup.rotation.x += (0 - globeGroup.rotation.x) * 0.05;
         globeGroup.rotation.z += (0 - globeGroup.rotation.z) * 0.05;
       }
-      
+
       // Animate streak particles (head and tail movement)
       streakParticles.forEach((streak) => {
         // Update angle
         streak.angle += streak.speed;
-        
+
         // Calculate new position around the orbit
         const basePos = new THREE.Vector3(
           Math.cos(streak.angle) * streak.radius,
           0,
           Math.sin(streak.angle) * streak.radius
         );
-        
+
         // Apply axis rotation for different orbital planes
         basePos.applyAxisAngle(streak.axis, streak.angle * 0.5);
-        
+
         // Position head
         streak.head.position.copy(basePos);
-        
+
         // Position tail segments (follow behind head)
         streak.tail.forEach((tailSegment, i) => {
           const trailAngle = streak.angle - (i + 1) * 0.02; // Much closer spacing
@@ -550,7 +617,7 @@ intensity = pow(intensity, 1.5); // Reduced exponent for larger middle gradient
           tailSegment.position.copy(trailPos);
         });
       });
-      
+
       handleRaycast();
       orbitCtrl.update();
 
@@ -563,7 +630,7 @@ intensity = pow(intensity, 1.5); // Reduced exponent for larger middle gradient
         (evt.clientX / window.innerWidth) * 2 - 1,
         -(evt.clientY / window.innerHeight) * 2 + 1
       );
-      
+
       // Update mouse coordinates for emoji tracking
       mouse.x = (evt.clientX / window.innerWidth) * 2 - 1;
       mouse.y = -(evt.clientY / window.innerHeight) * 2 + 1;
@@ -583,6 +650,9 @@ intensity = pow(intensity, 1.5); // Reduced exponent for larger middle gradient
       window.removeEventListener("resize", onResize);
       if (mountRef.current) {
         mountRef.current.removeChild(renderer.domElement);
+        if (waterlooLabelRef.current && mountRef.current.contains(waterlooLabelRef.current)) {
+          mountRef.current.removeChild(waterlooLabelRef.current);
+        }
       }
       renderer.dispose();
     };
@@ -596,11 +666,11 @@ intensity = pow(intensity, 1.5); // Reduced exponent for larger middle gradient
       1: { position: [6, -4, 2], lookAt: [-7.7, 1, -0.85] },      // Features - globe at bottom, camera lower
       2: { position: [12, 0, -24], lookAt: [-7.7, 0, 0] },       // About - globe on left, camera further away
       3: { position: [10, -2.5, 1], lookAt: [-7.7, 0, 10] },       // Team - camera much closer, globe on right, zoom on Waterloo
-      4: { position: [-18, 0, -0.5], lookAt: [-7.7, 0, -3] },       // Contact - camera far left, looking at globe to center it left, emoji appears right
+      4: { position: [50, 30, 40], lookAt: [100, 50, 80] },       // Contact - camera zoomed OUT into the stars
     };
 
     const config = positions[currentSection] || positions[0];
-    
+
     // Special handling for Team section (3) - calculate Waterloo position for lookAt
     if (currentSection === 3) {
       // Calculate Waterloo's position on the globe (lat: 43.4643, long: -80.5204)
@@ -609,7 +679,7 @@ intensity = pow(intensity, 1.5); // Reduced exponent for larger middle gradient
       const waterlooWorldX = waterlooX - 7.7;
       const waterlooWorldY = waterlooY;
       const waterlooWorldZ = waterlooZ;
-      
+
       // Calculate rotation needed to bring Waterloo to the front
       // Waterloo longitude is -80.5204°, we need to rotate the globe to bring this longitude to the front
       // Adding extra rotation to account for globe's initial orientation
@@ -625,7 +695,7 @@ intensity = pow(intensity, 1.5); // Reduced exponent for larger middle gradient
       if (connectionLineRef.current) {
         connectionLineRef.current.visible = true;
       }
-      
+
       targetPosition.current.set(...config.position);
       targetLookAt.current.set(waterlooWorldX, waterlooWorldY, waterlooWorldZ);
     } else {
