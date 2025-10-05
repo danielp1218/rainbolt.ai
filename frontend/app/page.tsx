@@ -136,52 +136,49 @@ export default function Home() {
 
       {/* Features Section */}
       <section id="features" data-section-id="1" className="relative h-screen snap-start">
-        <div className="absolute inset-0 flex items-start pt-20 overflow-y-auto">
-          <div className="container mx-auto px-4 pb-20">
-            <h2 className="text-4xl font-bold text-white mb-12 text-center [text-shadow:0_0_10px_#fff,0_0_20px_#0066cc] [animation:textGlow_3s_ease-in-out_infinite_alternate]">
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="container mx-auto px-4">
+            <h2 className="text-4xl font-bold text-white mb-16 text-center [text-shadow:0_0_5px_rgba(255,255,255,0.3)]">
               Features
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-6xl mx-auto">
-              <div className="p-6 bg-white/5 rounded-lg backdrop-blur-sm border border-white/10 hover:border-white/20 transition-all">
-                <h3 className="text-2xl font-bold mb-3 text-white">Pinpoint Geolocation</h3>
-                <p className="text-lg text-white/80 leading-relaxed">
-                  Upload any image. Get exact coordinates, street views, and 95%+ confidence scores in seconds. Our RAG model analyzes 200+ visual markers—architecture, vegetation, signage—like elite geoguessers.
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-7xl mx-auto">
+              {/* Comprehensive Reasoning */}
+              <div className="flex flex-col bg-white/5 rounded-lg backdrop-blur-sm border border-white/10 hover:border-white/20 transition-all p-8">
+                <h3 className="text-2xl font-bold mb-4 text-white text-center">Comprehensive Reasoning</h3>
+                <p className="text-base text-white/80 leading-relaxed text-center mb-6">
+                  We provide AI-powered analysis of visual markers, architecture, and environmental clues to determine precise locations with expert-level reasoning thanks to our unique approach to training.
                 </p>
+                <div className="w-full flex items-center justify-center mt-auto">
+                  <div className="w-full aspect-[4/3] overflow-hidden rounded-lg">
+                    <img src="/img1.jpg" alt="Comprehensive Reasoning" className="w-full h-full object-cover" />
+                  </div>
+                </div>
               </div>
 
-              <div className="p-6 bg-white/5 rounded-lg backdrop-blur-sm border border-white/10 hover:border-white/20 transition-all">
-                <h3 className="text-2xl font-bold mb-3 text-white">Expert-Level Reasoning</h3>
-                <p className="text-lg text-white/80 leading-relaxed">
-                  Trained on 10,000+ pro geolocation strategies. Identifies 50+ subtle clues—utility poles, road markings, building materials—to pinpoint locations with meter-level precision.
+              {/* Precise Geolocation */}
+              <div className="flex flex-col bg-white/5 rounded-lg backdrop-blur-sm border border-white/10 hover:border-white/20 transition-all p-8">
+                <h3 className="text-2xl font-bold mb-4 text-white text-center">Precise Geolocation</h3>
+                <p className="text-base text-white/80 leading-relaxed text-center mb-6">
+                  Upload any image and receive exact coordinates with up to 95%+ confidence scores in seconds. Our images are backed by countless references thanks to our queries using expansive databases.
                 </p>
+                <div className="w-full flex items-center justify-center mt-auto">
+                  <div className="w-full aspect-[4/3] overflow-hidden rounded-lg">
+                    <img src="/img2.png" alt="Precise Geolocation" className="w-full h-full object-cover" />
+                  </div>
+                </div>
               </div>
 
-              <div className="p-6 bg-white/5 rounded-lg backdrop-blur-sm border border-white/10 hover:border-white/20 transition-all">
-                <h3 className="text-2xl font-bold mb-3 text-white">Cultural Context Engine</h3>
-                <p className="text-lg text-white/80 leading-relaxed">
-                  Every location unlocks 15+ insights: history, cuisine, architecture, customs. Turn any photo into a 60-second learning experience.
+              {/* Learning Mode */}
+              <div className="flex flex-col bg-white/5 rounded-lg backdrop-blur-sm border border-white/10 hover:border-white/20 transition-all p-8">
+                <h3 className="text-2xl font-bold mb-4 text-white text-center">Learning Mode</h3>
+                <p className="text-base text-white/80 leading-relaxed text-center mb-6">
+                  Master geographic patterns through AI-guided training. Learn about the world while improving your geographical skills, but most importantly, explore cultures and fun facts along the way!
                 </p>
-              </div>
-
-              <div className="p-6 bg-white/5 rounded-lg backdrop-blur-sm border border-white/10 hover:border-white/20 transition-all">
-                <h3 className="text-2xl font-bold mb-3 text-white">Learning Mode</h3>
-                <p className="text-lg text-white/80 leading-relaxed">
-                  Master 100+ geographic patterns through AI-guided training. Build photographic memory for locations using proven recognition techniques.
-                </p>
-              </div>
-
-              <div className="p-6 bg-white/5 rounded-lg backdrop-blur-sm border border-white/10 hover:border-white/20 transition-all">
-                <h3 className="text-2xl font-bold mb-3 text-white">Real-Time Streaming</h3>
-                <p className="text-lg text-white/80 leading-relaxed">
-                  Sub-3-second responses via WebSocket. Watch confidence climb from 40% → 95% as our model processes 1M+ reference points layer-by-layer.
-                </p>
-              </div>
-
-              <div className="p-6 bg-white/5 rounded-lg backdrop-blur-sm border border-white/10 hover:border-white/20 transition-all">
-                <h3 className="text-2xl font-bold mb-3 text-white">Enterprise-Grade Stack</h3>
-                <p className="text-lg text-white/80 leading-relaxed">
-                  Firebase + Auth0 + FastAPI architecture. 99.9% uptime. Bank-level security for unlimited scale.
-                </p>
+                <div className="w-full flex items-center justify-center mt-auto">
+                  <div className="w-full aspect-[4/3] overflow-hidden rounded-lg">
+                    <img src="/img3.png" alt="Learning Mode" className="w-full h-full object-cover" />
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -291,8 +288,63 @@ export default function Home() {
 
       {/* Contact Section */}
       <section id="contact" data-section-id="4" className="relative h-screen snap-start">
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-6">
-          <h2 className={`text-5xl font-bold text-white [text-shadow:0_0_10px_#fff,0_0_20px_#0066cc,0_0_30px_#0099ff] [animation:textGlowBlue_3s_ease-in-out_infinite_alternate] ${currentSection === 4 ? 'animate-slide-in' : 'opacity-0'}`}>
+        {/* Star Constellations Background */}
+        <div className="absolute inset-0 z-0 pointer-events-none">
+          <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
+            {/* Constellation 1 - Top Left */}
+            <g opacity="0.6">
+              <line x1="10%" y1="15%" x2="15%" y2="20%" stroke="rgba(255,255,255,0.3)" strokeWidth="1" />
+              <line x1="15%" y1="20%" x2="12%" y2="25%" stroke="rgba(255,255,255,0.3)" strokeWidth="1" />
+              <line x1="12%" y1="25%" x2="18%" y2="28%" stroke="rgba(255,255,255,0.3)" strokeWidth="1" />
+              <circle cx="10%" cy="15%" r="2" fill="white" opacity="0.8" />
+              <circle cx="15%" cy="20%" r="2.5" fill="white" opacity="0.9" />
+              <circle cx="12%" cy="25%" r="2" fill="white" opacity="0.7" />
+              <circle cx="18%" cy="28%" r="2" fill="white" opacity="0.8" />
+            </g>
+
+            {/* Constellation 2 - Top Right */}
+            <g opacity="0.6">
+              <line x1="85%" y1="12%" x2="88%" y2="18%" stroke="rgba(255,255,255,0.3)" strokeWidth="1" />
+              <line x1="88%" y1="18%" x2="92%" y2="15%" stroke="rgba(255,255,255,0.3)" strokeWidth="1" />
+              <line x1="88%" y1="18%" x2="90%" y2="23%" stroke="rgba(255,255,255,0.3)" strokeWidth="1" />
+              <circle cx="85%" cy="12%" r="2" fill="white" opacity="0.8" />
+              <circle cx="88%" cy="18%" r="2.5" fill="white" opacity="0.9" />
+              <circle cx="92%" cy="15%" r="2" fill="white" opacity="0.7" />
+              <circle cx="90%" cy="23%" r="2" fill="white" opacity="0.8" />
+            </g>
+
+            {/* Constellation 3 - Bottom Left */}
+            <g opacity="0.6">
+              <line x1="8%" y1="75%" x2="13%" y2="78%" stroke="rgba(255,255,255,0.3)" strokeWidth="1" />
+              <line x1="13%" y1="78%" x2="16%" y2="82%" stroke="rgba(255,255,255,0.3)" strokeWidth="1" />
+              <line x1="16%" y1="82%" x2="12%" y2="85%" stroke="rgba(255,255,255,0.3)" strokeWidth="1" />
+              <circle cx="8%" cy="75%" r="2" fill="white" opacity="0.8" />
+              <circle cx="13%" cy="78%" r="2.5" fill="white" opacity="0.9" />
+              <circle cx="16%" cy="82%" r="2" fill="white" opacity="0.7" />
+              <circle cx="12%" cy="85%" r="2" fill="white" opacity="0.8" />
+            </g>
+
+            {/* Constellation 4 - Bottom Right */}
+            <g opacity="0.6">
+              <line x1="88%" y1="80%" x2="92%" y2="77%" stroke="rgba(255,255,255,0.3)" strokeWidth="1" />
+              <line x1="92%" y1="77%" x2="90%" y2="72%" stroke="rgba(255,255,255,0.3)" strokeWidth="1" />
+              <line x1="88%" y1="80%" x2="85%" y2="83%" stroke="rgba(255,255,255,0.3)" strokeWidth="1" />
+              <circle cx="88%" cy="80%" r="2" fill="white" opacity="0.8" />
+              <circle cx="92%" cy="77%" r="2.5" fill="white" opacity="0.9" />
+              <circle cx="90%" cy="72%" r="2" fill="white" opacity="0.7" />
+              <circle cx="85%" cy="83%" r="2" fill="white" opacity="0.8" />
+            </g>
+
+            {/* Small accent stars */}
+            <circle cx="25%" cy="30%" r="1.5" fill="white" opacity="0.5" />
+            <circle cx="70%" cy="40%" r="1.5" fill="white" opacity="0.6" />
+            <circle cx="30%" cy="65%" r="1.5" fill="white" opacity="0.5" />
+            <circle cx="75%" cy="55%" r="1.5" fill="white" opacity="0.6" />
+          </svg>
+        </div>
+
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-6 z-10">
+          <h2 className={`text-5xl font-bold text-white [text-shadow:0_0_5px_rgba(255,255,255,0.3)] ${currentSection === 4 ? 'animate-slide-in' : 'opacity-0'}`}>
             Tech Stack
           </h2>
           <div className={`max-w-7xl w-full px-4 ${currentSection === 4 ? 'animate-slide-in' : 'opacity-0'}`}>
