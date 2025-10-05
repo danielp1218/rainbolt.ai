@@ -37,7 +37,7 @@ export default function StarryNightBackground({ numStars = 4500 }: { numStars?: 
 
     let rafId = 0;
     let lastTime = performance.now();
-    const rotationSpeed = 0.001; // radians per second (slow)
+    const rotationSpeed = 0.004; // radians per second (slow)
     function animate(now: number) {
       const delta = (now - lastTime) / 1000; // seconds
       lastTime = now;
