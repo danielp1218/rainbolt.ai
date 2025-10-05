@@ -136,52 +136,49 @@ export default function Home() {
 
       {/* Features Section */}
       <section id="features" data-section-id="1" className="relative h-screen snap-start">
-        <div className="absolute inset-0 flex items-start pt-20 overflow-y-auto">
-          <div className="container mx-auto px-4 pb-20">
-            <h2 className="text-4xl font-bold text-white mb-12 text-center [text-shadow:0_0_10px_#fff,0_0_20px_#0066cc] [animation:textGlow_3s_ease-in-out_infinite_alternate]">
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="container mx-auto px-4">
+            <h2 className="text-4xl font-bold text-white mb-16 text-center [text-shadow:0_0_5px_rgba(255,255,255,0.3)]">
               Features
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-6xl mx-auto">
-              <div className="p-6 bg-white/5 rounded-lg backdrop-blur-sm border border-white/10 hover:border-white/20 transition-all">
-                <h3 className="text-2xl font-bold mb-3 text-white">Pinpoint Geolocation</h3>
-                <p className="text-lg text-white/80 leading-relaxed">
-                  Upload any image. Get exact coordinates, street views, and 95%+ confidence scores in seconds. Our RAG model analyzes 200+ visual markers—architecture, vegetation, signage—like elite geoguessers.
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-7xl mx-auto">
+              {/* Comprehensive Reasoning */}
+              <div className="flex flex-col bg-white/5 rounded-lg backdrop-blur-sm border border-white/10 hover:border-white/20 transition-all p-8">
+                <h3 className="text-2xl font-bold mb-4 text-white text-center">Comprehensive Reasoning</h3>
+                <p className="text-base text-white/80 leading-relaxed text-center mb-6">
+                  We provide AI-powered analysis of visual markers, architecture, and environmental clues to determine precise locations with expert-level reasoning thanks to our unique approach to training.
                 </p>
+                <div className="w-full flex items-center justify-center mt-auto">
+                  <div className="w-full aspect-[4/3] overflow-hidden rounded-lg">
+                    <img src="/img1.jpg" alt="Comprehensive Reasoning" className="w-full h-full object-cover" />
+                  </div>
+                </div>
               </div>
 
-              <div className="p-6 bg-white/5 rounded-lg backdrop-blur-sm border border-white/10 hover:border-white/20 transition-all">
-                <h3 className="text-2xl font-bold mb-3 text-white">Expert-Level Reasoning</h3>
-                <p className="text-lg text-white/80 leading-relaxed">
-                  Trained on 10,000+ pro geolocation strategies. Identifies 50+ subtle clues—utility poles, road markings, building materials—to pinpoint locations with meter-level precision.
+              {/* Precise Geolocation */}
+              <div className="flex flex-col bg-white/5 rounded-lg backdrop-blur-sm border border-white/10 hover:border-white/20 transition-all p-8">
+                <h3 className="text-2xl font-bold mb-4 text-white text-center">Precise Geolocation</h3>
+                <p className="text-base text-white/80 leading-relaxed text-center mb-6">
+                  Upload any image and receive exact coordinates with up to 95%+ confidence scores in seconds. Our images are backed by countless references thanks to our queries using expansive databases.
                 </p>
+                <div className="w-full flex items-center justify-center mt-auto">
+                  <div className="w-full aspect-[4/3] overflow-hidden rounded-lg">
+                    <img src="/img2.png" alt="Precise Geolocation" className="w-full h-full object-cover" />
+                  </div>
+                </div>
               </div>
 
-              <div className="p-6 bg-white/5 rounded-lg backdrop-blur-sm border border-white/10 hover:border-white/20 transition-all">
-                <h3 className="text-2xl font-bold mb-3 text-white">Cultural Context Engine</h3>
-                <p className="text-lg text-white/80 leading-relaxed">
-                  Every location unlocks 15+ insights: history, cuisine, architecture, customs. Turn any photo into a 60-second learning experience.
+              {/* Learning Mode */}
+              <div className="flex flex-col bg-white/5 rounded-lg backdrop-blur-sm border border-white/10 hover:border-white/20 transition-all p-8">
+                <h3 className="text-2xl font-bold mb-4 text-white text-center">Learning Mode</h3>
+                <p className="text-base text-white/80 leading-relaxed text-center mb-6">
+                  Master geographic patterns through AI-guided training. Learn about the world while improving your geographical skills, but most importantly, explore cultures and fun facts along the way!
                 </p>
-              </div>
-
-              <div className="p-6 bg-white/5 rounded-lg backdrop-blur-sm border border-white/10 hover:border-white/20 transition-all">
-                <h3 className="text-2xl font-bold mb-3 text-white">Learning Mode</h3>
-                <p className="text-lg text-white/80 leading-relaxed">
-                  Master 100+ geographic patterns through AI-guided training. Build photographic memory for locations using proven recognition techniques.
-                </p>
-              </div>
-
-              <div className="p-6 bg-white/5 rounded-lg backdrop-blur-sm border border-white/10 hover:border-white/20 transition-all">
-                <h3 className="text-2xl font-bold mb-3 text-white">Real-Time Streaming</h3>
-                <p className="text-lg text-white/80 leading-relaxed">
-                  Sub-3-second responses via WebSocket. Watch confidence climb from 40% → 95% as our model processes 1M+ reference points layer-by-layer.
-                </p>
-              </div>
-
-              <div className="p-6 bg-white/5 rounded-lg backdrop-blur-sm border border-white/10 hover:border-white/20 transition-all">
-                <h3 className="text-2xl font-bold mb-3 text-white">Enterprise-Grade Stack</h3>
-                <p className="text-lg text-white/80 leading-relaxed">
-                  Firebase + Auth0 + FastAPI architecture. 99.9% uptime. Bank-level security for unlimited scale.
-                </p>
+                <div className="w-full flex items-center justify-center mt-auto">
+                  <div className="w-full aspect-[4/3] overflow-hidden rounded-lg">
+                    <img src="/img3.png" alt="Learning Mode" className="w-full h-full object-cover" />
+                  </div>
+                </div>
               </div>
             </div>
           </div>
