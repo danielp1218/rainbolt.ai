@@ -23,7 +23,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Send to FastAPI backend
-    const backendResponse = await fetch('http://localhost:8000/upload-image', {
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+    const backendResponse = await fetch(`${backendUrl}/upload-image`, {
       method: 'POST',
       body: backendFormData,
     });

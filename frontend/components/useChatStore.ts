@@ -146,7 +146,8 @@ export const useChatStore = create<ChatState>()(
                 });
                 
                 // Still connect WebSocket for chat functionality, but don't process image again
-                const ws = new WebSocket(`ws://localhost:8000/ws/chat/${sessionId}`);
+                const backendWs = process.env.NEXT_PUBLIC_BACKEND_WS || 'ws://localhost:8000';
+                const ws = new WebSocket(`${backendWs}/ws/chat/${sessionId}`);
                 
                 ws.onopen = () => {
                     console.log('WebSocket connected (already processed session)');
@@ -323,7 +324,8 @@ export const useChatStore = create<ChatState>()(
             // Mark session as being processed IMMEDIATELY to prevent double connections
             set({ sessionId, hasProcessedSession: true });
             
-            const ws = new WebSocket(`ws://localhost:8000/ws/chat/${sessionId}`);
+            const backendWs = process.env.NEXT_PUBLIC_BACKEND_WS || 'ws://localhost:8000';
+            const ws = new WebSocket(`${backendWs}/ws/chat/${sessionId}`);
             
             ws.onopen = () => {
                 console.log('WebSocket connected, sending process_image request');
