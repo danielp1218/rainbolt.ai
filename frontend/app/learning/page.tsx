@@ -20,6 +20,8 @@ interface ConstellationNode {
 const ConstellationNode: React.FC<{
   node: ConstellationNode;
   onMouseDown: (e: React.MouseEvent) => void;
+  onMouseEnter?: () => void;
+  onMouseLeave?: () => void;
   onClick: () => void;
   onDelete: () => void;
   onCreateLink: () => void;
@@ -28,7 +30,8 @@ const ConstellationNode: React.FC<{
   linkCopied: boolean;
   isLinking: boolean;
   isLinkingFrom: boolean;
-}> = ({ node, onMouseDown, onClick, onDelete, onCreateLink, isSettingsOpen, onToggleSettings, linkCopied, isLinking, isLinkingFrom }) => {
+  isHovered?: boolean;
+}> = ({ node, onMouseDown, onMouseEnter, onMouseLeave, onClick, onDelete, onCreateLink, isSettingsOpen, onToggleSettings, linkCopied, isLinking, isLinkingFrom, isHovered }) => {
   return (
     <div
       data-node-id={node.id}
@@ -41,23 +44,29 @@ const ConstellationNode: React.FC<{
         transform: node.isDragging ? 'scale(1.02)' : 'scale(1)',
         transition: node.isDragging ? 'none' : 'transform 0.1s ease-out',
       }}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
     >
       <div className="relative group">
         {/* Glow effect */}
-        <div className={`absolute inset-0 rounded-xl blur-md transition-all duration-300 ${
+        <div className={`absolute inset-0 rounded-xl blur-md transition-all duration-500 ${
           isLinkingFrom 
             ? 'bg-gradient-to-br from-yellow-400/40 to-orange-600/40 group-hover:blur-lg animate-pulse' 
             : isLinking && !isLinkingFrom
             ? 'bg-gradient-to-br from-green-400/30 to-blue-600/30 group-hover:blur-lg group-hover:from-green-400/50 group-hover:to-blue-600/50'
-            : 'bg-gradient-to-br from-blue-400/20 to-purple-600/20 group-hover:blur-lg'
+            : isHovered
+            ? 'bg-gradient-to-br from-cyan-400/40 to-blue-500/40 blur-lg animate-pulse'
+            : 'bg-gradient-to-br from-blue-400/20 to-purple-600/20 group-hover:blur-lg group-hover:from-blue-400/30 group-hover:to-purple-600/30'
         }`} />
         
         {/* Main card container */}
-        <div className={`relative backdrop-blur-md border rounded-xl w-48 overflow-hidden ${
+        <div className={`relative backdrop-blur-md border rounded-xl w-48 overflow-hidden transition-all duration-500 ${
           isLinkingFrom
             ? 'bg-yellow-500/10 border-yellow-400/30'
             : isLinking && !isLinkingFrom
             ? 'bg-green-500/10 border-green-400/30 hover:bg-green-500/20'
+            : isHovered
+            ? 'bg-cyan-500/15 border-cyan-400/40'
             : 'bg-white/5 border-white/10'
         }`}>
           {/* Draggable Handle Bar */}
@@ -177,7 +186,7 @@ const ConstellationNode: React.FC<{
 export default function LearningPage() {
   const { user, firebaseUserId } = useAuth0Firebase();
   const { sessions, loading: sessionsLoading, createNewSession: createSession, deleteSession } = useGlobeSessions();
-  const { links, createLink, getConnectedSessions, reloadLinks, clearAllLinks } = useSessionLinks();
+  const { links, createLink, removeLink, getConnectedSessions, reloadLinks, clearAllLinks } = useSessionLinks();
   
   const [nodes, setNodes] = useState<ConstellationNode[]>([]);
   
@@ -205,6 +214,12 @@ export default function LearningPage() {
     sessionId: string;
     sessionTitle: string;
   }>({ isOpen: false, sessionId: '', sessionTitle: '' });
+  const [linkDeleteConfirmation, setLinkDeleteConfirmation] = useState<{
+    isOpen: boolean;
+    linkId: string;
+    fromSessionTitle: string;
+    toSessionTitle: string;
+  }>({ isOpen: false, linkId: '', fromSessionTitle: '', toSessionTitle: '' });
   const [linkCopiedId, setLinkCopiedId] = useState<string | null>(null);
   
   // State for visual linking
@@ -212,6 +227,11 @@ export default function LearningPage() {
   const [linkingFromNodeId, setLinkingFromNodeId] = useState<string | null>(null);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [linkingFromPosition, setLinkingFromPosition] = useState({ x: 0, y: 0 });
+  
+  // State for hover effects on links
+  const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
+  const [hoveredLinkId, setHoveredLinkId] = useState<string | null>(null);
+  const [selectedLinkId, setSelectedLinkId] = useState<string | null>(null);
   
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0});
   const [draggingNodeId, setDraggingNodeId] = useState<string | null>(null);
@@ -243,31 +263,32 @@ export default function LearningPage() {
     };
   }, [isLinking]);
 
-  // Add global click listener to cancel linking mode
+  // Add global click listener to cancel linking mode and deselect links
   useEffect(() => {
     const handleGlobalClick = (e: MouseEvent) => {
-      if (!isLinking) return;
-      
-      // Check if the click is on a constellation node
       const target = e.target as HTMLElement;
       const isNodeClick = target.closest('[data-node-id]');
+      const isSVGClick = target.closest('svg');
       
-      if (!isNodeClick) {
+      if (isLinking && !isNodeClick) {
         console.log('Global click outside nodes, canceling link');
         setIsLinking(false);
         setLinkingFromNodeId(null);
         setLinkingFromPosition({ x: 0, y: 0 });
       }
+      
+      // Deselect link if clicking outside SVG
+      if (!isSVGClick && selectedLinkId) {
+        setSelectedLinkId(null);
+      }
     };
 
-    if (isLinking) {
-      document.addEventListener('click', handleGlobalClick, true); // Use capture phase
-    }
+    document.addEventListener('click', handleGlobalClick, true); // Use capture phase
 
     return () => {
       document.removeEventListener('click', handleGlobalClick, true);
     };
-  }, [isLinking]);
+  }, [isLinking, selectedLinkId]);
 
   // Initialize constellation nodes when sessions are loaded
   useEffect(() => {
@@ -457,6 +478,49 @@ export default function LearningPage() {
     setLinkingFromPosition({ x: 0, y: 0 });
   };
 
+  const handleDeleteLink = async (linkId: string) => {
+    // Find the link and get session titles for confirmation
+    const link = links.find(l => l.id === linkId);
+    if (!link) return;
+    
+    const fromSession = sessions.find(s => s.id === link.fromSessionId);
+    const toSession = sessions.find(s => s.id === link.toSessionId);
+    
+    if (!fromSession || !toSession) return;
+    
+    // Show confirmation dialog
+    setLinkDeleteConfirmation({
+      isOpen: true,
+      linkId,
+      fromSessionTitle: fromSession.title,
+      toSessionTitle: toSession.title
+    });
+    
+    // Clear link selection
+    setSelectedLinkId(null);
+  };
+
+  const confirmDeleteLink = async () => {
+    try {
+      const result = await removeLink(linkDeleteConfirmation.linkId);
+      if (result.success) {
+        console.log('Link deleted successfully');
+      } else {
+        console.error('Failed to delete link:', result.error);
+      }
+    } catch (error) {
+      console.error('Error deleting link:', error);
+    }
+    
+    // Close confirmation dialog
+    setLinkDeleteConfirmation({
+      isOpen: false,
+      linkId: '',
+      fromSessionTitle: '',
+      toSessionTitle: ''
+    });
+  };
+
   const handleDeleteSession = async (sessionId: string) => {
     const session = sessions.find(s => s.id === sessionId);
     if (session) {
@@ -497,14 +561,21 @@ export default function LearningPage() {
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && deleteConfirmation.isOpen) {
         cancelDeleteSession();
+      } else if (e.key === 'Escape' && linkDeleteConfirmation.isOpen) {
+        setLinkDeleteConfirmation({
+          isOpen: false,
+          linkId: '',
+          fromSessionTitle: '',
+          toSessionTitle: ''
+        });
       }
     };
 
-    if (deleteConfirmation.isOpen) {
+    if (deleteConfirmation.isOpen || linkDeleteConfirmation.isOpen) {
       document.addEventListener('keydown', handleEscape);
       return () => document.removeEventListener('keydown', handleEscape);
     }
-  }, [deleteConfirmation.isOpen]);
+  }, [deleteConfirmation.isOpen, linkDeleteConfirmation.isOpen]);
 
   const handleCreateNewSession = async () => {
     try {
@@ -694,6 +765,8 @@ export default function LearningPage() {
             key={node.id}
             node={node}
             onMouseDown={(e) => handleMouseDown(e, node.id)}
+            onMouseEnter={() => setHoveredNodeId(node.id)}
+            onMouseLeave={() => setHoveredNodeId(null)}
             onClick={() => {
               if (isLinking && linkingFromNodeId !== node.id) {
                 handleCompleteLink(node.id);
@@ -708,6 +781,7 @@ export default function LearningPage() {
             linkCopied={linkCopiedId === node.id}
             isLinking={isLinking}
             isLinkingFrom={linkingFromNodeId === node.id}
+            isHovered={hoveredNodeId === node.id}
           />
         ))}
 
@@ -748,7 +822,7 @@ export default function LearningPage() {
 
         {/* Connection Lines between linked nodes */}
         <svg 
-          className="absolute inset-0 pointer-events-none" 
+          className="absolute inset-0" 
           style={{ 
             zIndex: 1, 
             position: 'absolute',
@@ -756,6 +830,14 @@ export default function LearningPage() {
             left: 0,
             width: '100%',
             height: '100%'
+          }}
+          onClick={(e) => {
+            // Only deselect if clicking on the SVG background itself
+            if (e.target === e.currentTarget) {
+              setSelectedSession(null);
+              setSelectedLinkId(null);
+              setIsLinking(false);
+            }
           }}
         >
           <defs>
@@ -813,37 +895,143 @@ export default function LearningPage() {
             
             console.log('✅ RENDERING LINK:', link.id);
             
+            // Check if either connected node is being hovered OR if the link itself is hovered
+            const isConnectedToHover = hoveredNodeId === link.fromSessionId || hoveredNodeId === link.toSessionId;
+            const isLinkHovered = hoveredLinkId === link.id;
+            const isLinkSelected = selectedLinkId === link.id;
+            const shouldGlow = isConnectedToHover || isLinkHovered || isLinkSelected;
+            
             return (
               <g key={link.id}>
-                {/* Glow effect layer - wider, softer */}
+                {/* Invisible larger hitbox for easier clicking */}
                 <line
                   x1={fromNode.position.x + 100}
                   y1={fromNode.position.y + 100}
                   x2={toNode.position.x + 100}
                   y2={toNode.position.y + 100}
-                  stroke="rgba(255, 255, 255, 0.3)"
-                  strokeWidth="8"
-                  filter="url(#linkGlow)"
+                  stroke="transparent"
+                  strokeWidth="20"
+                  style={{ cursor: 'pointer' }}
+                  onMouseEnter={() => setHoveredLinkId(link.id)}
+                  onMouseLeave={() => setHoveredLinkId(null)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedLinkId(selectedLinkId === link.id ? null : link.id);
+                  }}
                 />
-                {/* Main solid white line */}
+                {/* Glow effect layer - changes color on hover with smooth transition */}
                 <line
-                  x1={fromNode.position.x + 100} // Center of node
+                  x1={fromNode.position.x + 100}
                   y1={fromNode.position.y + 100}
                   x2={toNode.position.x + 100}
                   y2={toNode.position.y + 100}
-                  stroke="rgba(255, 255, 255, 0.9)"
-                  strokeWidth="3"
+                  stroke={shouldGlow ? "rgba(100, 200, 255, 0.8)" : "rgba(255, 255, 255, 0.3)"}
+                  strokeWidth={shouldGlow ? "12" : "8"}
                   filter="url(#linkGlow)"
+                  className={shouldGlow ? "animate-pulse" : ""}
+                  style={{
+                    transition: 'stroke 0.3s ease-in-out, stroke-width 0.3s ease-in-out',
+                    pointerEvents: 'none'
+                  }}
                 />
-                {/* Connection indicator - pulsing dot at midpoint */}
+                {/* Main solid line - brightens on hover with smooth transition */}
+                <line
+                  x1={fromNode.position.x + 100}
+                  y1={fromNode.position.y + 100}
+                  x2={toNode.position.x + 100}
+                  y2={toNode.position.y + 100}
+                  stroke={shouldGlow ? "rgba(150, 220, 255, 1)" : "rgba(255, 255, 255, 0.7)"}
+                  strokeWidth={shouldGlow ? "4" : "2"}
+                  filter="url(#linkGlow)"
+                  style={{
+                    transition: 'stroke 0.3s ease-in-out, stroke-width 0.3s ease-in-out',
+                    pointerEvents: 'none'
+                  }}
+                />
+                {/* Connection indicator - grows and changes color on hover with smooth transition */}
                 <circle
                   cx={fromNode.position.x + (toNode.position.x - fromNode.position.x) * 0.5 + 100}
                   cy={fromNode.position.y + (toNode.position.y - fromNode.position.y) * 0.5 + 100}
-                  r="4"
-                  fill="rgba(255, 255, 255, 0.8)"
+                  r={shouldGlow ? "6" : "3"}
+                  fill={shouldGlow ? "rgba(100, 200, 255, 1)" : "rgba(255, 255, 255, 0.6)"}
                   filter="url(#linkGlow)"
                   className="animate-pulse"
+                  style={{
+                    transition: 'fill 0.3s ease-in-out, r 0.3s ease-in-out',
+                    pointerEvents: 'none'
+                  }}
                 />
+                {/* Delete button when link is selected */}
+                {isLinkSelected && (
+                  <g>
+                    {/* Purple gradient definitions */}
+                    <defs>
+                      <linearGradient id={`deleteGradient-${link.id}`} x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stopColor="rgba(96, 165, 250, 0.4)" />
+                        <stop offset="100%" stopColor="rgba(147, 51, 234, 0.4)" />
+                      </linearGradient>
+                    </defs>
+
+                    {/* Purple gradient background - same size as session button */}
+                    <rect
+                      x={fromNode.position.x + (toNode.position.x - fromNode.position.x) * 0.5 + 100 - 10}
+                      y={fromNode.position.y + (toNode.position.y - fromNode.position.y) * 0.5 + 100 - 25}
+                      width="20"
+                      height="20"
+                      rx="4"
+                      fill={`url(#deleteGradient-${link.id})`}
+                      stroke="rgba(255, 255, 255, 0.2)"
+                      strokeWidth="1"
+                      filter="url(#linkGlow)"
+                      style={{ 
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease-in-out'
+                      }}
+                      onMouseEnter={(e) => {
+                        // Add red hover overlay
+                        e.currentTarget.setAttribute('fill', 'rgba(239, 68, 68, 0.6)');
+                        e.currentTarget.setAttribute('stroke', 'rgba(255, 255, 255, 0.4)');
+                        // Change icon color to red
+                        const icon = e.currentTarget.parentNode?.querySelector('.trash-icon');
+                        if (icon) icon.setAttribute('stroke', 'rgba(248, 113, 113, 1)');
+                      }}
+                      onMouseLeave={(e) => {
+                        // Reset to purple gradient
+                        e.currentTarget.setAttribute('fill', `url(#deleteGradient-${link.id})`);
+                        e.currentTarget.setAttribute('stroke', 'rgba(255, 255, 255, 0.2)');
+                        // Reset icon color
+                        const icon = e.currentTarget.parentNode?.querySelector('.trash-icon');
+                        if (icon) icon.setAttribute('stroke', 'rgba(255, 255, 255, 0.6)');
+                      }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteLink(link.id);
+                      }}
+                    />
+
+                    {/* Trash icon - exact same size as session (w-3 h-3 = 12px) */}
+                    <g
+                      className="trash-icon"
+                      transform={`translate(${fromNode.position.x + (toNode.position.x - fromNode.position.x) * 0.5 + 100 - 6}, ${fromNode.position.y + (toNode.position.y - fromNode.position.y) * 0.5 + 100 - 21})`}
+                      fill="none"
+                      stroke="rgba(255, 255, 255, 0.6)"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      style={{ 
+                        pointerEvents: 'none',
+                        transition: 'stroke 0.2s ease-in-out'
+                      }}
+                    >
+                      {/* Trash2 icon scaled to 12px (w-3 h-3) */}
+                      <path d="M3 6h18" transform="scale(0.5)" />
+                      <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" transform="scale(0.5)" />
+                      <path d="m19 6-1 12a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" transform="scale(0.5)" />
+                      <path d="m10 11 0 4" transform="scale(0.5)" />
+                      <path d="m14 11 0 4" transform="scale(0.5)" />
+                    </g>
+                  </g>
+                )}
               </g>
             );
           })}
@@ -959,6 +1147,77 @@ export default function LearningPage() {
                   className="flex-1 bg-red-600 hover:bg-red-700 text-white border-0"
                 >
                   Delete Forever
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Link Delete Confirmation Modal */}
+      {linkDeleteConfirmation.isOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setLinkDeleteConfirmation({
+                isOpen: false,
+                linkId: '',
+                fromSessionTitle: '',
+                toSessionTitle: ''
+              });
+            }
+          }}
+        >
+          <div className="bg-gray-900/95 backdrop-blur-md border border-red-500/30 rounded-2xl p-8 max-w-md w-full mx-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="text-center">
+              {/* Warning Icon */}
+              <div className="mx-auto flex items-center justify-center w-16 h-16 rounded-full bg-red-500/20 mb-6">
+                <Trash2 className="w-8 h-8 text-red-400" />
+              </div>
+              
+              {/* Title */}
+              <h3 className="text-2xl font-bold text-white mb-3">
+                Delete Connection
+              </h3>
+              
+              {/* Warning Message */}
+              <p className="text-white/70 mb-2">
+                Are you sure you want to delete the link between
+              </p>
+              <p className="text-white font-semibold mb-2 break-words">
+                "{linkDeleteConfirmation.fromSessionTitle}"
+              </p>
+              <p className="text-white/70 mb-2">and</p>
+              <p className="text-white font-semibold mb-6 break-words">
+                "{linkDeleteConfirmation.toSessionTitle}"?
+              </p>
+              
+              <p className="text-red-400/80 text-sm mb-8">
+                This will remove the connection between these sessions. This action cannot be undone.
+              </p>
+              
+              {/* Action Buttons */}
+              <div className="flex gap-3">
+                <Button
+                  variant="outline"
+                  onClick={() => setLinkDeleteConfirmation({
+                    isOpen: false,
+                    linkId: '',
+                    fromSessionTitle: '',
+                    toSessionTitle: ''
+                  })}
+                  className="flex-1 border-white/20 text-white hover:bg-white/10"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={confirmDeleteLink}
+                  className="flex-1 bg-red-600 hover:bg-red-700 text-white border-0"
+                >
+                  Delete Link
                 </Button>
               </div>
             </div>
