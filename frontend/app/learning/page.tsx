@@ -195,6 +195,7 @@ export default function LearningPage() {
   const { links, createLink, removeLink, getConnectedSessions, reloadLinks, clearAllLinks } = useSessionLinks();
   
   const [nodes, setNodes] = useState<ConstellationNode[]>([]);
+  const [initialLoadComplete, setInitialLoadComplete] = useState(false);
   
   // Debug: Log links whenever they change
   useEffect(() => {
@@ -380,7 +381,12 @@ export default function LearningPage() {
       console.log('No sessions found, clearing nodes');
       setNodes([]);
     }
-  }, [sessions]); // Removed reloadLinks dependency to prevent infinite loop
+    
+    // Mark initial load as complete after data is loaded
+    if (!sessionsLoading && !isLoading) {
+      setInitialLoadComplete(true);
+    }
+  }, [sessions, sessionsLoading, isLoading]); // Removed reloadLinks dependency to prevent infinite loop
 
   // Drag handlers - optimized for performance
   const handleMouseDown = (e: React.MouseEvent, nodeId: string) => {
@@ -760,12 +766,16 @@ export default function LearningPage() {
   console.log('Sessions loading:', sessionsLoading);
   console.log('Auth loading:', isLoading);
 
-  if (sessionsLoading) {
+  // Show loading screen on initial load or when data is loading
+  if (!initialLoadComplete || sessionsLoading || isLoading) {
     return (
       <div className="min-h-screen bg-black text-white">
         <Navbar currentSection={0} />
         <div className="flex items-center justify-center min-h-screen">
           <div className="text-center">
+            <div className="relative mb-8">
+              <div className="w-16 h-16 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin mx-auto"></div>
+            </div>
             <h1 className="text-4xl font-bold mb-4">Loading your constellation...</h1>
             <p className="text-white/70">Gathering your globe sessions from the stars.</p>
           </div>
@@ -863,6 +873,9 @@ export default function LearningPage() {
               if (isLinking && linkingFromNodeId !== node.id) {
                 handleCompleteLink(node.id);
               } else {
+                // Clear the store before navigating to ensure fresh state
+                const { useChatStore } = require('@/components/useChatStore');
+                useChatStore.getState().clear();
                 router.push(`/chat/${node.id}`);
               }
             }}

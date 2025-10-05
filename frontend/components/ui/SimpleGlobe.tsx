@@ -330,7 +330,7 @@ export default function SimpleGlobe({ markers = [], targetMarkerIndex = 0, isLoc
         // Set new hovered marker
         if (hoveredPinGroup && hoveredPinGroup !== hoveredMarker) {
           hoveredMarker = hoveredPinGroup as THREE.Mesh;
-          hoveredMarker.scale.setScalar(1.3);
+          hoveredMarker.scale.setScalar(1.2);
           if (mountRef.current) {
             mountRef.current.style.cursor = 'pointer';
           }
@@ -510,19 +510,33 @@ export default function SimpleGlobe({ markers = [], targetMarkerIndex = 0, isLoc
     // Add new markers
     if (markers.length > 0) {
       // Create a pin shape using a group of geometries
-      const createPinGeometry = () => {
+      // confidence: 0-100, scales pin height from 0.5x to 2x base height
+      const createPinGeometry = (confidence: number = 50) => {
         const pinGroup = new THREE.Group();
         
+        // Scale factor based on confidence (0-100)
+        // Map: 0% confidence -> 0.5x height, 50% -> 1x height, 100% -> 2x height
+        const heightScale = 0.5 + (confidence / 100) * 1.5;
+        
+        // Base dimensions (30% smaller)
+        const baseHeadSize = 0.0175;
+        const baseStemHeight = 0.028;
+        const stemRadius = 0.0042;
+        
+        // Scaled dimensions
+        const scaledHeadSize = baseHeadSize * heightScale;
+        const scaledStemHeight = baseStemHeight * heightScale;
+        
         // Pin head (teardrop shape)
-        const headGeometry = new THREE.SphereGeometry(0.025, 8, 8);
+        const headGeometry = new THREE.SphereGeometry(scaledHeadSize, 8, 8);
         const head = new THREE.Mesh(headGeometry);
         head.scale.set(1, 1.3, 1); // Elongate slightly
-        head.position.set(0, 0.025, 0);
+        head.position.set(0, scaledStemHeight / 2 + scaledHeadSize * 0.7, 0);
         
         // Pin stem
-        const stemGeometry = new THREE.CylinderGeometry(0.006, 0.006, 0.04, 6);
+        const stemGeometry = new THREE.CylinderGeometry(stemRadius, stemRadius, scaledStemHeight, 6);
         const stem = new THREE.Mesh(stemGeometry);
-        stem.position.set(0, -0.005, 0);
+        stem.position.set(0, 0, 0);
         
         pinGroup.add(head);
         pinGroup.add(stem);
@@ -547,8 +561,8 @@ export default function SimpleGlobe({ markers = [], targetMarkerIndex = 0, isLoc
           roughness: 0.4,
         });
         
-        // Create pin group
-        const pinGroup = createPinGeometry();
+        // Create pin group with height based on confidence
+        const pinGroup = createPinGeometry(marker.confidence || 50);
         
         // Apply material to all meshes in the pin
         pinGroup.traverse((child) => {

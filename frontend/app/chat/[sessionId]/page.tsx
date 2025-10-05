@@ -18,7 +18,7 @@ export default function ChatPage() {
     const nextMarker = useChatStore((state) => state.nextMarker);
     const previousMarker = useChatStore((state) => state.previousMarker);
     const deleteMarker = useChatStore((state) => state.deleteMarker);
-    const [isLocked, setIsLocked] = useState(false); // Start unlocked so user can drag globe
+    const [isLocked, setIsLocked] = useState(false); // Start unlocked
     const hasLockedRef = useRef(false); // Track if we've already locked to markers
     const [mapillaryImages, setMapillaryImages] = useState<Record<number, string[]>>({});
     const [loadingImages, setLoadingImages] = useState<Record<number, boolean>>({});
@@ -65,10 +65,16 @@ export default function ChatPage() {
     // Lock globe when markers are loaded
     useEffect(() => {
         console.log('Markers updated, count:', markers.length);
-        if (markers.length > 0 && !hasLockedRef.current) {
-            console.log('Locking globe to first marker');
-            setIsLocked(true);
-            hasLockedRef.current = true;
+        if (markers.length > 0) {
+            if (!hasLockedRef.current) {
+                console.log('Locking globe to first marker');
+                setIsLocked(true);
+                hasLockedRef.current = true;
+            }
+        } else {
+            // If no markers, unlock the globe
+            setIsLocked(false);
+            hasLockedRef.current = false;
         }
     }, [markers.length]);
 
@@ -116,7 +122,6 @@ export default function ChatPage() {
                         [currentMarker]: data.images || []
                     }));
                 } else {
-                    console.error('Failed to fetch Mapillary images:', response.statusText);
                     setMapillaryImages(prev => ({
                         ...prev,
                         [currentMarker]: []
@@ -274,7 +279,7 @@ export default function ChatPage() {
                                     )}
                                 </div>
                             </div>
-                            <div className="overflow-y-auto px-4 pb-4 space-y-3" style={{ maxHeight: 'calc(80vh - 320px)' }}>
+                            <div className="overflow-y-auto px-4 space-y-3 pb-6" style={{ maxHeight: 'calc(80vh - 320px)' }}>
                                 {loadingImages[currentMarker] ? (
                                     <div className="text-white/50 text-sm text-center py-8">
                                         Loading street view images...
@@ -308,7 +313,7 @@ export default function ChatPage() {
 
                 {/* Marker Navigation Buttons */}
                 {markers.length > 1 && (
-                    <div className="absolute bottom-8 left-[50%] transform flex items-center gap-4 bg-black/80 backdrop-blur-sm rounded-full px-6 py-3 border border-white/20 z-10">
+                    <div className="absolute bottom-8 left-[40%] transform flex items-center gap-4 bg-black/80 backdrop-blur-sm rounded-full px-6 py-3 border border-white/20 z-10">
                         <button
                             onClick={(e) => {
                                 e.stopPropagation();

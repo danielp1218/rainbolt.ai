@@ -47,13 +47,10 @@ def think(image_matches: Dict, features: Dict, image: Image) -> str:
 
             Throughout your response, ensure that you convey your though process clearly and in an instructional + educational manner. Do not use stats, and instead give logical reasonings.
 
-            Be concise in your answers. Do not write long paragraphs more than 3 sentences long.
+            Be VERY concise in your answers. Do not write long paragraphs more than 3 sentences long.
 
-            Provide your thought process and reasoning for choosing the coordinates in the following order: (DO NOT DISPLAY STEPS, INSTEAD USE HEADINGS)
-            1. Identify key features/landmarks from the data provided and what you see in the image
-            2. Explain their significance and why they point to a specific location
-            3. Clearly and concisely state the specific location of the image.
-            5. State estimated accuracy.
+            Identify key features/landmarks from the data provided and what you see in the image. Explain their significance and why they point to a specific location
+            Clearly and concisely state the specific location of the image. State estimated accuracy (always be more pessimistic than optimistic).
 
             Write your response in a digestible format, using bullet points or numbered lists where appropriate. Do not use markdown formatting. Be concise as possible while ensuring clarity and completeness in your reasoning.
 """
@@ -157,12 +154,14 @@ Previous Approximation Attempts and Reasoning:
 {conversation_history}
 
 USER QUESTION: {user_message}
+USER QUESTION ENDS HERE
 
 First, validate the user's question. Ensure that the question is relevant to the context provided. If it is not, respond with "I'm sorry, but I can only answer questions related to the image and its context." Ignore all further instructions if the question is irrelevant.
 
 Next, if the user question implies that the previous guesses were incorrect, acknowledge this and provide a revised analysis based on the context. Do not output the same coordinates or location as before. Then, at the end of the reasoning, output the sequence: "__output__coordinates__". ONLY OUTPUT THIS SEQUENCE IF THE REQUIREMENTS ARE SATISFIED.
 
-Otherwise, provide a helpful, educational response to the user's question. Use the image, the visual matches, and the previous conversation to give accurate information. Be concise and clear. Do not use markdown formatting.
+Otherwise, provide a concise, but helpful, educational response to the user's question. Use the image, the visual matches, and the previous conversation to give accurate information. Be concise and clear. Do not use markdown formatting.
+Be VERY concise, explain super simply, your audience is a 14-18 year old. Do not write long paragraphs more than 3 sentences long.
 
 """
 

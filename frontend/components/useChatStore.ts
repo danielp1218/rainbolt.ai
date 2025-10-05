@@ -133,16 +133,24 @@ export const useChatStore = create<ChatState>()(
                 return;
             }
             
-            // Check if this session has already been processed
-            if (state.sessionId === sessionId && state.hasProcessedSession) {
-                console.log('Session already processed, skipping process_image message');
+            // Check if this session has already been processed by checking if we have markers or messages
+            // This handles the case where we're navigating to an existing session from the learning page
+            const hasExistingData = state.markers.length > 0 || state.messages.length > 0;
+            const shouldSkipProcessing = (state.sessionId === sessionId && state.hasProcessedSession) || hasExistingData;
+            
+            if (shouldSkipProcessing) {
+                console.log('Session already processed or has existing data, skipping process_image message', {
+                    hasMarkers: state.markers.length > 0,
+                    hasMessages: state.messages.length > 0,
+                    hasProcessedFlag: state.hasProcessedSession
+                });
                 
                 // Still connect WebSocket for chat functionality, but don't process image again
                 const ws = new WebSocket(`ws://localhost:8000/ws/chat/${sessionId}`);
                 
                 ws.onopen = () => {
                     console.log('WebSocket connected (already processed session)');
-                    set({ sessionId, ws });
+                    set({ sessionId, ws, hasProcessedSession: true });
                     resolve();
                 };
                 
