@@ -832,52 +832,7 @@ export default function LearningPage() {
           New Session
         </Button>
 
-        {/* Debug: Show links info */}
-        {links.length > 0 && (
-          <div className="absolute top-4 right-4 bg-blue-900/80 text-white p-3 rounded text-xs z-30">
-            <div>Links: {links.length}</div>
-            {links.map(link => (
-              <div key={link.id} className="mt-1">
-                {link.fromSessionId.slice(-6)} → {link.toSessionId.slice(-6)}
-              </div>
-            ))}
-          </div>
-        )}
 
-        {/* Debug: Force reload links button */}
-        <Button 
-          onClick={() => {
-            console.log('Force reloading links...');
-            reloadLinks();
-          }}
-          className="absolute top-48 right-8 z-20 bg-red-500/80 text-white hover:bg-red-600/80 text-xs"
-          size="sm"
-        >
-          Reload Links
-        </Button>
-
-        {/* Debug: Clear all links button */}
-        <Button 
-          onClick={async () => {
-            console.log('Clearing all links...');
-            const result = await clearAllLinks();
-            console.log('Clear result:', result);
-          }}
-          className="absolute top-64 right-8 z-20 bg-orange-500/80 text-white hover:bg-orange-600/80 text-xs"
-          size="sm"
-        >
-          Clear Links
-        </Button>
-
-        {/* Debug: Link count display */}
-        <div className="absolute top-80 right-8 z-20 bg-black/60 text-white p-2 rounded text-xs">
-          Links: {links.length} | Nodes: {nodes.length}
-          <br />
-          Should Render: {links.filter(link => 
-            nodes.find(n => n.id === link.fromSessionId) && 
-            nodes.find(n => n.id === link.toSessionId)
-          ).length}
-        </div>
 
         {/* Constellation Nodes */}
         {nodes.map((node) => (
