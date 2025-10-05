@@ -48,9 +48,7 @@ class Manager:
 
 manager = Manager()
 
-# Get the directory where main.py is located and create uploads directory with absolute path
-BASE_DIR = Path(__file__).resolve().parent
-UPLOAD_DIR = BASE_DIR / "uploads"
+UPLOAD_DIR = Path("uploads")
 UPLOAD_DIR.mkdir(exist_ok=True)
 
 # Set directory permissions to be readable/writable by all (755)
