@@ -9,6 +9,7 @@ import {
   NavigationMenuList,
   NavigationMenuTrigger,
 } from "@/components/ui/navigation-menu";
+import LoginComponent from "./Login_component";
 
 
 interface NavbarProps {
