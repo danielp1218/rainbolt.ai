@@ -179,6 +179,17 @@ export const getUserGlobeSessions = async (userId: string): Promise<GlobeSession
   }
 };
 
+export const deleteGlobeSession = async (sessionId: string) => {
+  try {
+    const sessionRef = doc(db, 'globeSessions', sessionId);
+    await deleteDoc(sessionRef);
+    return { success: true };
+  } catch (error) {
+    console.error('Error deleting globe session:', error);
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+  }
+};
+
 export const addGlobeImage = async (
   sessionId: string,
   imageData: {

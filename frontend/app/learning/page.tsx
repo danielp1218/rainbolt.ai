@@ -1,11 +1,12 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { useUser } from '@/hooks/useUser';
+import { useAuth0Firebase } from '@/hooks/useAuth0Firebase';
+import { useGlobeSessions } from '@/hooks/useGlobeSessions';
 import { Button } from '@/components/ui/button';
 import { Navbar } from '@/components/ui/navbar';
 import { GlobeSession } from '@/lib/globe-database';
-import { Plus, Star, Globe } from 'lucide-react';
+import { Plus, Star, Globe, X, Trash2 } from 'lucide-react';
 
 interface ConstellationNode {
   id: string;
@@ -19,7 +20,8 @@ const ConstellationNode: React.FC<{
   node: ConstellationNode;
   onMouseDown: (e: React.MouseEvent) => void;
   onClick: () => void;
-}> = ({ node, onMouseDown, onClick }) => {
+  onDelete: () => void;
+}> = ({ node, onMouseDown, onClick, onDelete }) => {
   return (
     <div
       data-node-id={node.id}
@@ -41,16 +43,28 @@ const ConstellationNode: React.FC<{
         <div className="relative bg-white/5 backdrop-blur-md border border-white/10 rounded-xl w-48 overflow-hidden">
           {/* Draggable Handle Bar */}
           <div 
-            className="bg-gradient-to-r from-blue-500/40 to-purple-500/40 border-b border-white/10 p-2 cursor-move hover:from-blue-500/60 hover:to-purple-500/60 transition-colors duration-100"
-            onMouseDown={onMouseDown}
+            className="bg-gradient-to-r from-blue-500/40 to-purple-500/40 border-b border-white/10 p-2 hover:from-blue-500/60 hover:to-purple-500/60 transition-colors duration-100"
           >
             <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-1">
+              <div 
+                className="flex items-center space-x-1 cursor-move flex-1"
+                onMouseDown={onMouseDown}
+              >
                 <div className="w-1.5 h-1.5 bg-white/60 rounded-full"></div>
                 <div className="w-1.5 h-1.5 bg-white/60 rounded-full"></div>
                 <div className="w-1.5 h-1.5 bg-white/60 rounded-full"></div>
+                <span className="text-xs text-white/70 font-medium ml-2">DRAG</span>
               </div>
-              <span className="text-xs text-white/70 font-medium">DRAG</span>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete();
+                }}
+                className="p-1 rounded hover:bg-red-500/30 transition-colors group"
+                title="Delete session"
+              >
+                <Trash2 className="w-3 h-3 text-white/60 group-hover:text-red-400" />
+              </button>
             </div>
           </div>
 
@@ -99,8 +113,9 @@ const ConstellationNode: React.FC<{
   );
 };
 
-export default function ConstellationPage() {
-  const { user } = useUser();
+export default function LearningPage() {
+  const { user, firebaseUserId } = useAuth0Firebase();
+  const { sessions, loading: sessionsLoading, createNewSession: createSession, deleteSession } = useGlobeSessions();
   const [nodes, setNodes] = useState<ConstellationNode[]>([]);
   const [selectedSession, setSelectedSession] = useState<GlobeSession | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -114,91 +129,10 @@ export default function ConstellationPage() {
     nodesRef.current = nodes;
   }, [nodes]);
 
-  // Mock sessions for development
-  const mockSessions: GlobeSession[] = [
-    {
-      id: 'session_1',
-      userId: user?.id || 'dev_user',
-      title: 'Exploring European Capitals',
-      status: 'active',
-      createdAt: new Date(Date.now() - 3600000),
-      updatedAt: new Date(Date.now() - 1800000),
-      lastAccessedAt: new Date(Date.now() - 900000),
-      globeImages: [
-        {
-          id: 'img_1',
-          imageUrl: '/globe-screenshots/paris.jpg',
-          location: { lat: 48.8566, lng: 2.3522 },
-          locationName: 'Paris, France',
-          timestamp: new Date(Date.now() - 1800000),
-          userNote: 'Beautiful view of the Eiffel Tower area'
-        },
-        {
-          id: 'img_2',
-          imageUrl: '/globe-screenshots/rome.jpg',
-          location: { lat: 41.9028, lng: 12.4964 },
-          locationName: 'Rome, Italy',
-          timestamp: new Date(Date.now() - 1200000),
-          userNote: 'Colosseum region exploration'
-        }
-      ],
-      chatHistory: [
-        {
-          id: 'chat_1',
-          role: 'ai',
-          message: 'Welcome! I see you\'re exploring European capitals. Would you like to learn about the history of Paris?',
-          timestamp: new Date(Date.now() - 1700000),
-          relatedImage: 'img_1'
-        },
-        {
-          id: 'chat_2',
-          role: 'user',
-          message: 'Yes, tell me about the Eiffel Tower',
-          timestamp: new Date(Date.now() - 1600000),
-          relatedImage: 'img_1'
-        },
-        {
-          id: 'chat_3',
-          role: 'ai',
-          message: 'The Eiffel Tower was built in 1889 for the Paris Exposition. It\'s 330 meters tall and was initially planned to be temporary!',
-          timestamp: new Date(Date.now() - 1500000),
-          relatedImage: 'img_1'
-        }
-      ]
-    },
-    {
-      id: 'session_2',
-      userId: user?.id || 'dev_user',
-      title: 'Asian Megacities Tour',
-      status: 'completed',
-      createdAt: new Date(Date.now() - 86400000),
-      updatedAt: new Date(Date.now() - 7200000),
-      lastAccessedAt: new Date(Date.now() - 7200000),
-      globeImages: [
-        {
-          id: 'img_3',
-          imageUrl: '/globe-screenshots/tokyo.jpg',
-          location: { lat: 35.6762, lng: 139.6503 },
-          locationName: 'Tokyo, Japan',
-          timestamp: new Date(Date.now() - 82800000),
-        }
-      ],
-      chatHistory: [
-        {
-          id: 'chat_4',
-          role: 'ai',
-          message: 'Tokyo is the world\'s largest metropolitan area! What would you like to explore?',
-          timestamp: new Date(Date.now() - 82800000),
-          relatedImage: 'img_3'
-        }
-      ]
-    }
-  ];
-
-  // Initialize constellation nodes on component mount
+  // Initialize constellation nodes when sessions are loaded
   useEffect(() => {
-    if (mockSessions.length > 0) {
-      const initialNodes: ConstellationNode[] = mockSessions.map((session, index) => ({
+    if (sessions.length > 0) {
+      const initialNodes: ConstellationNode[] = sessions.map((session, index) => ({
         id: session.id,
         session,
         position: {
@@ -208,8 +142,10 @@ export default function ConstellationPage() {
         isDragging: false,
       }));
       setNodes(initialNodes);
+    } else {
+      setNodes([]);
     }
-  }, []);
+  }, [sessions]);
 
   // Drag handlers - optimized for performance
   const handleMouseDown = (e: React.MouseEvent, nodeId: string) => {
@@ -273,6 +209,48 @@ export default function ConstellationPage() {
     setDraggingNodeId(null);
   };
 
+  const createSessionWithTitle = async (title: string) => {
+    try {
+      const sessionId = await createSession(title);
+      console.log('Created new session:', sessionId);
+      setShowCreateModal(false);
+    } catch (error) {
+      console.error('Failed to create session:', error);
+      // You can add error handling UI here
+    }
+  };
+
+  const openCreateModal = () => {
+    setShowCreateModal(true);
+  };
+
+  const handleDeleteSession = async (sessionId: string) => {
+    try {
+      // Show a confirmation dialog
+      if (window.confirm('Are you sure you want to delete this session? This action cannot be undone.')) {
+        await deleteSession(sessionId);
+        // Remove from nodes state
+        setNodes(prev => prev.filter(node => node.id !== sessionId));
+      }
+    } catch (error) {
+      console.error('Failed to delete session:', error);
+      // You can add error handling UI here
+    }
+  };
+
+  const handleCreateNewSession = async () => {
+    try {
+      // For now, create with a default title. You can replace this with a modal for user input
+      const defaultTitle = `Globe Session ${new Date().toLocaleString()}`;
+      const sessionId = await createSession(defaultTitle);
+      console.log('Created new session:', sessionId);
+      // The sessions will be automatically refreshed by the useGlobeSessions hook
+    } catch (error) {
+      console.error('Failed to create session:', error);
+      // You can add error handling UI here
+    }
+  };
+
   const createNewSession = () => {
     setShowCreateModal(true);
   };
@@ -285,6 +263,20 @@ export default function ConstellationPage() {
           <div className="text-center">
             <h1 className="text-4xl font-bold mb-4">Please log in to explore</h1>
             <p className="text-white/70">You need to be authenticated to access your constellation.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (sessionsLoading) {
+    return (
+      <div className="min-h-screen bg-black text-white">
+        <Navbar currentSection={0} />
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <h1 className="text-4xl font-bold mb-4">Loading your constellation...</h1>
+            <p className="text-white/70">Gathering your globe sessions from the stars.</p>
           </div>
         </div>
       </div>
@@ -339,7 +331,7 @@ export default function ConstellationPage() {
 
         {/* Floating Add Button */}
         <Button 
-          onClick={createNewSession}
+          onClick={openCreateModal}
           className="absolute top-32 right-8 z-20 bg-white/10 backdrop-blur-md border border-white/20 text-white hover:bg-white/20 transition-all duration-300"
           size="lg"
         >
@@ -354,8 +346,32 @@ export default function ConstellationPage() {
             node={node}
             onMouseDown={(e) => handleMouseDown(e, node.id)}
             onClick={() => setSelectedSession(node.session)}
+            onDelete={() => handleDeleteSession(node.id)}
           />
         ))}
+
+        {/* Empty State */}
+        {sessions.length === 0 && (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="text-center max-w-md">
+              <div className="mb-6">
+                <Star className="w-16 h-16 text-white/30 mx-auto mb-4" />
+                <h2 className="text-2xl font-bold text-white mb-2">Your constellation awaits</h2>
+                <p className="text-white/60">
+                  Create your first globe session to begin exploring the world and building your learning constellation.
+                </p>
+              </div>
+              <Button 
+                onClick={openCreateModal}
+                className="bg-white/10 backdrop-blur-md border border-white/20 text-white hover:bg-white/20 transition-all duration-300"
+                size="lg"
+              >
+                <Plus className="w-5 h-5 mr-2" />
+                Create First Session
+              </Button>
+            </div>
+          </div>
+        )}
 
         {/* Connection Lines between nodes */}
         <svg className="absolute inset-0 pointer-events-none" style={{ zIndex: 1 }}>
@@ -396,7 +412,10 @@ export default function ConstellationPage() {
 
       {/* Create Session Modal */}
       {showCreateModal && (
-        <CreateSessionModal onClose={() => setShowCreateModal(false)} />
+        <CreateSessionModal 
+          onClose={() => setShowCreateModal(false)}
+          onCreateSession={createSessionWithTitle}
+        />
       )}
     </div>
   );
@@ -523,8 +542,15 @@ function SessionDetailModal({ session, onClose }: { session: GlobeSession; onClo
   );
 }
 
-function CreateSessionModal({ onClose }: { onClose: () => void }) {
+function CreateSessionModal({ 
+  onClose, 
+  onCreateSession 
+}: { 
+  onClose: () => void;
+  onCreateSession: (title: string) => Promise<void>;
+}) {
   const [title, setTitle] = useState('');
+  const [isCreating, setIsCreating] = useState(false);
 
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
@@ -541,8 +567,15 @@ function CreateSessionModal({ onClose }: { onClose: () => void }) {
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && title.trim() && !isCreating) {
+                    e.preventDefault();
+                    document.querySelector<HTMLButtonElement>('[data-create-button]')?.click();
+                  }
+                }}
                 placeholder="e.g., Exploring Southeast Asia"
                 className="w-full px-3 py-2 bg-white/10 border border-white/30 rounded-lg text-white placeholder:text-white/50 focus:outline-none focus:border-white/60"
+                autoFocus
               />
             </div>
             
@@ -555,15 +588,24 @@ function CreateSessionModal({ onClose }: { onClose: () => void }) {
                 Cancel
               </Button>
               <Button 
-                disabled={!title.trim()}
+                disabled={!title.trim() || isCreating}
                 className="flex-1 bg-white text-black hover:bg-white/90"
-                onClick={() => {
-                  // Here you would create the session
-                  console.log('Creating session:', title);
-                  onClose();
+                data-create-button
+                onClick={async () => {
+                  if (!title.trim()) return;
+                  
+                  setIsCreating(true);
+                  try {
+                    await onCreateSession(title.trim());
+                  } catch (error) {
+                    console.error('Failed to create session:', error);
+                    // The error handling is done in the parent component
+                  } finally {
+                    setIsCreating(false);
+                  }
                 }}
               >
-                Start Exploring
+                {isCreating ? 'Creating...' : 'Start Exploring'}
               </Button>
             </div>
           </div>
