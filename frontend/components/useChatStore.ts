@@ -146,7 +146,15 @@ export const useChatStore = create<ChatState>()(
                 });
                 
                 // Still connect WebSocket for chat functionality, but don't process image again
-                const backendWs = process.env.NEXT_PUBLIC_BACKEND_WS || 'ws://localhost:8000';
+                let backendWs = process.env.NEXT_PUBLIC_BACKEND_WS || 'ws://localhost:8000';
+                
+                // If we're on HTTPS and trying to connect to ws://, upgrade to wss://
+                if (typeof window !== 'undefined' && window.location.protocol === 'https:' && backendWs.startsWith('ws://')) {
+                    console.warn('Page is served over HTTPS but WebSocket URL uses ws://, upgrading to wss://');
+                    backendWs = backendWs.replace('ws://', 'wss://');
+                }
+                
+                console.log('WebSocket URL (existing session):', `${backendWs}/ws/chat/${sessionId}`);
                 const ws = new WebSocket(`${backendWs}/ws/chat/${sessionId}`);
                 
                 ws.onopen = () => {
@@ -324,7 +332,16 @@ export const useChatStore = create<ChatState>()(
             // Mark session as being processed IMMEDIATELY to prevent double connections
             set({ sessionId, hasProcessedSession: true });
             
-            const backendWs = process.env.NEXT_PUBLIC_BACKEND_WS || 'ws://localhost:8000';
+            // Determine the correct WebSocket protocol based on the page protocol
+            let backendWs = process.env.NEXT_PUBLIC_BACKEND_WS || 'ws://localhost:8000';
+            
+            // If we're on HTTPS and trying to connect to ws://, upgrade to wss://
+            if (typeof window !== 'undefined' && window.location.protocol === 'https:' && backendWs.startsWith('ws://')) {
+                console.warn('Page is served over HTTPS but WebSocket URL uses ws://, upgrading to wss://');
+                backendWs = backendWs.replace('ws://', 'wss://');
+            }
+            
+            console.log('WebSocket URL:', `${backendWs}/ws/chat/${sessionId}`);
             const ws = new WebSocket(`${backendWs}/ws/chat/${sessionId}`);
             
             ws.onopen = () => {
@@ -642,12 +659,26 @@ export const useChatStore = create<ChatState>()(
                 // Update global session context whenever session ID changes
                 setCurrentSessionId(state.sessionId);
                 
+                // Only persist serializable data, exclude WebSocket instance and other non-serializable objects
                 return {
-                    messages: state.messages,
+                    messages: state.messages.map(msg => ({
+                        id: msg.id,
+                        role: msg.role,
+                        text: msg.text,
+                        ts: msg.ts,
+                        type: msg.type
+                    })),
                     sessionId: state.sessionId,
                     uploadedImageUrl: state.uploadedImageUrl,
                     hasProcessedSession: state.hasProcessedSession,
-                    markers: state.markers,
+                    markers: state.markers.map(marker => ({
+                        latitude: marker.latitude,
+                        longitude: marker.longitude,
+                        accuracy: marker.accuracy,
+                        facts: marker.facts,
+                        name: marker.name,
+                        mapillary_images: marker.mapillary_images
+                    })),
                     currentMarker: state.currentMarker,
                 };
             },

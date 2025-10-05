@@ -58,8 +58,23 @@ export function createFirebaseStorage(options: FirebaseStorageOptions): StateSto
                 
                 if (docSnap.exists()) {
                     // Update existing session - merge into data field
+                    // Parse and sanitize the value to ensure it's Firestore-compatible
+                    const key = Object.keys(updates)[0];
+                    const value = Object.values(updates)[0];
+                    
+                    // Try to parse the value and remove any non-serializable properties
+                    let sanitizedValue = value;
+                    try {
+                        const parsed = JSON.parse(value);
+                        // Remove any circular references or non-serializable data
+                        sanitizedValue = JSON.stringify(parsed);
+                    } catch (e) {
+                        // If parsing fails, value is already a simple string
+                        console.warn('[Firebase Storage] Value is not JSON, using as-is');
+                    }
+                    
                     await updateDoc(docRef, {
-                        [`data.${Object.keys(updates)[0]}`]: Object.values(updates)[0],
+                        [`data.${key}`]: sanitizedValue,
                         updatedAt: serverTimestamp(),
                         lastAccessedAt: serverTimestamp()
                     });
