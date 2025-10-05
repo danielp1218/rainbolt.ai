@@ -139,10 +139,10 @@ async def websocket_chat(websocket: WebSocket, session_id: str):
                         "type": "status",
                         "message": "Analyzing your question..."
                     })
-                    
-                    image_matches = query_pinecone_with_image(image, top_k=5, namespace="images")
-                    feature_matches = query_pinecone_with_image(image, top_k=10, namespace="features")
-                    
+
+                    image_matches = query_pinecone_with_image(image, top_k=5, namespace="images", threshold=0.6)
+                    feature_matches = query_pinecone_with_image(image, top_k=10, namespace="features", threshold=0.6)
+
                     # Build conversation context
                     conversation_context = "\n\nPrevious Conversation:\n"
                     for msg in chat_history:
@@ -223,21 +223,20 @@ async def websocket_chat(websocket: WebSocket, session_id: str):
                 try:
                     # Load the image
                     image = Image.open(file_path)
+                    image_matches = query_pinecone_with_image(image, top_k=23, namespace="images", threshold=0.6)
                     
-                    # Query Pinecone for image matches
                     await manager.send_message(session_id, {
                         "type": "status",
-                        "message": "Finding similar locations..."
+                        "message": f"Found {len(image_matches)} similar images in the database."
                     })
-                    image_matches = query_pinecone_with_image(image, top_k=5, namespace="images")
-                    
+
                     # Query Pinecone for features
                     await manager.send_message(session_id, {
                         "type": "status",
                         "message": "Detecting features..."
                     })
-                    feature_matches = query_pinecone_with_image(image, top_k=10, namespace="features")
-                    
+                    feature_matches = query_pinecone_with_image(image, top_k=10, namespace="features", threshold=0.6)
+
                     # Start reasoning process
                     await manager.send_message(session_id, {
                         "type": "status",

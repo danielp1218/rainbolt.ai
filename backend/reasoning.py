@@ -120,8 +120,6 @@ def chat_with_context(user_message: str, conversation_history: str, image_matche
 
     prompt = f"""You are a geography expert helping analyze this image to determine its location.
 
-
-
 CONTEXT INFORMATION:
 Closest Visual Matches (geotagged images from database):
 {visual_match}

@@ -22,21 +22,24 @@ pinecone = Pinecone(
 index_name = "htv2025"
 index = pinecone.Index(index_name)
 
-def query_pinecone(vector, top_k=5, namespace=None) -> List[dict]:
+def query_pinecone(vector, top_k=5, namespace=None, threshold=0) -> List[dict]:
     """
     Query Pinecone index with a vector and return top_k results
     """
     response = index.query(vector=vector, top_k=top_k, include_metadata=True, namespace=namespace)
-    return response['matches']
+    matches = response['matches']
+    if threshold > 0:
+        matches = [m for m in matches if m['score'] >= threshold]
+    return matches
 
-def query_pinecone_with_image(image: Image.Image, top_k=5, namespace=None) -> List[dict]:
+def query_pinecone_with_image(image: Image.Image, top_k=5, namespace=None, threshold=0) -> List[dict]:
     """
     Embed image and query Pinecone index
     """
     image_input = preprocess(image).unsqueeze(0).to(device)
     with torch.no_grad():
         vector = model.encode_image(image_input).tolist()
-    return query_pinecone(vector, top_k=top_k, namespace=namespace)
+    return query_pinecone(vector, top_k=top_k, namespace=namespace, threshold=threshold)
 
 def query_pinecone_with_text(text: str, top_k=5, namespace=None) -> List[dict]:
     """

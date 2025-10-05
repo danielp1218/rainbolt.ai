@@ -1,10 +1,25 @@
 import requests
 import os
 from dotenv import load_dotenv
+import math
 
 load_dotenv()  
 
-def get_mapillary_images(lat: float, lon: float, radius: int = 100, limit: int = 5) -> list:
+def haversine_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    """Calculate distance between two points in meters using Haversine formula"""
+    R = 6371000  # Earth's radius in meters
+    
+    phi1 = math.radians(lat1)
+    phi2 = math.radians(lat2)
+    delta_phi = math.radians(lat2 - lat1)
+    delta_lambda = math.radians(lon2 - lon1)
+    
+    a = math.sin(delta_phi/2)**2 + math.cos(phi1) * math.cos(phi2) * math.sin(delta_lambda/2)**2
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
+    
+    return R * c
+
+def get_mapillary_images(lat: float, lon: float, radius: float = 0.003, limit: int = 5) -> list:
 
     if not os.getenv("MAPILLARY_API_KEY"):
         raise ValueError("MAPILLARY_API_KEY environment variable not set")
@@ -14,19 +29,44 @@ def get_mapillary_images(lat: float, lon: float, radius: int = 100, limit: int =
 
     params = {
         "access_token": api_key,
-        "fields": "id,thumb_1024_url",
-        "bbox": f"{lon-0.003},{lat-0.003},{lon+0.003},{lat+0.003}",
-        "limit": limit
+        "fields": "id,thumb_1024_url,geometry",
+        "bbox": f"{lon-radius},{lat-radius},{lon+radius},{lat+radius}",
+        "limit": 50  # Fetch more images to filter from
     }
 
     response = requests.get(url, params=params)
     if response.status_code == 200:
         all_data = response.json()
         data = all_data.get('data', [])
-        return [img.get('thumb_1024_url') for img in data if img.get('thumb_1024_url')]
+        
+        # Calculate distance for each image and sort by proximity
+        images_with_distance = []
+        for img in data:
+            if img.get('thumb_1024_url') and img.get('geometry'):
+                coords = img['geometry']['coordinates']
+                img_lon, img_lat = coords[0], coords[1]
+                distance = haversine_distance(lat, lon, img_lat, img_lon)
+                images_with_distance.append({
+                    'url': img['thumb_1024_url'],
+                    'distance': distance,
+                    'lat': img_lat,
+                    'lon': img_lon
+                })
+        
+        # Sort by distance and return the closest ones
+        images_with_distance.sort(key=lambda x: x['distance'])
+
+        print(f"closest image at {images_with_distance[0]['distance']:.2f} meters, coordinates: ({images_with_distance[0]['lat']}, {images_with_distance[0]['lon']})")
+        
+        return [img['url'] for img in images_with_distance[:limit]]
     
     else:
         print(f"Error fetching Mapillary images: {response.status_code}")
         return []
 
-print(get_mapillary_images(48.8584, 2.2945))
+if __name__ == "__main__":
+    # Eiffel Tower coordinates: 48.8584° N, 2.2945° E
+    images = get_mapillary_images(48.858093, 2.294694, radius=0.001, limit=5)
+    print(f"Found {len(images)} images")
+    for i, url in enumerate(images, 1):
+        print(f"{i}. {url}")

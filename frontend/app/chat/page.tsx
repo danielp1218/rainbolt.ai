@@ -90,10 +90,10 @@ export default function ChatPage() {
         <div className="relative h-screen w-screen overflow-hidden bg-black">
             {/* Globe - Moved further to the right */}
             <div className="absolute inset-0 right-[420px] flex items-center justify-center">
-                <div className="w-full h-full" style={{ transform: 'translateX(300px)' }}>
-                    <SimpleGlobe
-                        markers={globeMarkers}
-                        targetMarkerIndex={currentMarker}
+                <div className="w-full h-full">
+                    <SimpleGlobe 
+                        markers={globeMarkers} 
+                        targetMarkerIndex={currentMarker} 
                         isLocked={isLocked}
                         onUnlock={() => setIsLocked(false)}
                         onLock={() => setIsLocked(true)}

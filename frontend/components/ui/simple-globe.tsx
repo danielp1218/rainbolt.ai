@@ -22,12 +22,17 @@ interface SimpleGlobeProps {
 }
 
 export default function SimpleGlobe({ markers = [], targetMarkerIndex = 0, isLocked = true, onUnlock, onLock, onMarkerClick }: SimpleGlobeProps) {
+  // Camera zoom constants
+  const ZOOM_OUT = 4.5; // Unlocked/zoomed out state
+  const ZOOM_IN = 2.5; // Locked/zoomed in state
+  
   const mountRef = useRef<HTMLDivElement>(null);
   const animationRef = useRef<{
     targetRotationY: number;
     targetRotationX: number;
     isAnimating: boolean;
-  }>({ targetRotationY: 0, targetRotationX: 0, isAnimating: false });
+    targetCameraZ: number;
+  }>({ targetRotationY: 0, targetRotationX: 0, isAnimating: false, targetCameraZ: ZOOM_OUT });
   
   // Store isLocked in a ref so the animate function can access current value
   const isLockedRef = useRef(isLocked);
@@ -49,8 +54,13 @@ export default function SimpleGlobe({ markers = [], targetMarkerIndex = 0, isLoc
     if (!isLocked) {
       // Stop any ongoing animation when unlocked
       animationRef.current.isAnimating = false;
+      // Zoom out when unlocking
+      animationRef.current.targetCameraZ = ZOOM_OUT;
+    } else {
+      // Zoom in when locking
+      animationRef.current.targetCameraZ = ZOOM_IN;
     }
-  }, [isLocked]);
+  }, [isLocked, ZOOM_OUT, ZOOM_IN]);
 
   // Effect for handling target marker changes without recreating scene
   useEffect(() => {
@@ -62,10 +72,11 @@ export default function SimpleGlobe({ markers = [], targetMarkerIndex = 0, isLoc
       const marker = markers[markerIndex];
       
       // Convert lat/long to rotation angles with 80 degree Y offset
-      const offsetDegrees = 80;
-      const targetY = -(marker.long * Math.PI / 180) + (offsetDegrees * Math.PI / 180);
+      const offsetDegreesY = 80;
+      const targetY = -(marker.long * Math.PI / 180) + (offsetDegreesY * Math.PI / 180);
+
       const targetX = (marker.lat * Math.PI / 180);
-      
+
       animationRef.current.targetRotationY = targetY;
       animationRef.current.targetRotationX = targetX;
       animationRef.current.isAnimating = true;
@@ -88,9 +99,15 @@ export default function SimpleGlobe({ markers = [], targetMarkerIndex = 0, isLoc
     );
     camera.position.set(0, 0, 4.5); // Position camera to center the globe
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+    const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "default" });
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // Cap pixel ratio for performance
+    
+    // Style the canvas to cover full screen
+    renderer.domElement.style.width = '100%';
+    renderer.domElement.style.height = '100%';
+    renderer.domElement.style.display = 'block';
+    
     mountRef.current.appendChild(renderer.domElement);
 
     // Manual rotation variables
@@ -117,7 +134,7 @@ export default function SimpleGlobe({ markers = [], targetMarkerIndex = 0, isLoc
     scene.add(globeYRotationGroup);
     globeYRotationGroup.add(globeXRotationGroup);
     
-    camera.lookAt(1.5, 0, 0);
+    camera.lookAt(0, 0, 0);
 
     // Simple globe geometry and material - optimized
     const geo = new THREE.IcosahedronGeometry(1, 12); // Reduced from 16 to 12
@@ -289,6 +306,13 @@ export default function SimpleGlobe({ markers = [], targetMarkerIndex = 0, isLoc
       stars.rotation.y += 0.0002;
       stars.rotation.x += 0.0001;
       
+      // Handle camera zoom animation
+      const zoomLerpFactor = 0.06;
+      const cameraDeltaZ = animationRef.current.targetCameraZ - camera.position.z;
+      if (Math.abs(cameraDeltaZ) > 0.01) {
+        camera.position.z += cameraDeltaZ * zoomLerpFactor;
+      }
+      
       // Handle smooth rotation animation to target (only when locked)
       if (isLockedRef.current && animationRef.current.isAnimating && !isDragging) {
         const lerpFactor = 0.05; // Smoothness of animation (lower = smoother but slower)
@@ -297,10 +321,11 @@ export default function SimpleGlobe({ markers = [], targetMarkerIndex = 0, isLoc
         const deltaY = animationRef.current.targetRotationY - globeYRotationGroup.rotation.y;
         const deltaX = animationRef.current.targetRotationX - globeYRotationGroup.rotation.x;
         
+        // Rotate the globe
         globeYRotationGroup.rotation.y += deltaY * lerpFactor;
         globeYRotationGroup.rotation.x += deltaX * lerpFactor;
         
-        // Stop animating when close enough
+        // Stop animating when rotation is complete
         if (Math.abs(deltaY) < 0.001 && Math.abs(deltaX) < 0.001) {
           animationRef.current.isAnimating = false;
         }
@@ -394,6 +419,9 @@ export default function SimpleGlobe({ markers = [], targetMarkerIndex = 0, isLoc
       animationRef.current.targetRotationY = targetY;
       animationRef.current.targetRotationX = targetX;
       animationRef.current.isAnimating = true;
+      animationRef.current.targetCameraZ = ZOOM_IN; // Zoom in for locked state
+    } else if (!isLocked) {
+      animationRef.current.targetCameraZ = ZOOM_OUT; // Stay zoomed out for unlocked state
     }
 
     return () => {
@@ -442,8 +470,12 @@ export default function SimpleGlobe({ markers = [], targetMarkerIndex = 0, isLoc
       markers.forEach((marker, index) => {
         const [x, y, z] = latLongToVector3(marker.lat, marker.long, 1.02);
         
+        // Use different color for the locked/target marker
+        const isTargetMarker = isLocked && index === targetMarkerIndex;
+        const markerColor = isTargetMarker ? '#00ff00' : (marker.color || '#ff0000');
+        
         const markerMaterial = new THREE.MeshBasicMaterial({
-          color: marker.color || '#ff0000',
+          color: markerColor,
           transparent: true,
           opacity: 0.8,
         });
@@ -456,7 +488,7 @@ export default function SimpleGlobe({ markers = [], targetMarkerIndex = 0, isLoc
         sceneRef.current.markerMeshes.push(markerMesh);
       });
     }
-  }, [markers]);
+  }, [markers, targetMarkerIndex, isLocked]);
 
-  return <div ref={mountRef} style={{ width: "100%", height: "100%" }} className="absolute inset-0" />;
+  return <div ref={mountRef} style={{ width: "100vw", height: "100vh", position: "fixed", top: 0, left: 0 }} />;
 }
