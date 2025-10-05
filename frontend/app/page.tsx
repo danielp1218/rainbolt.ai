@@ -4,8 +4,6 @@ import { useEffect, useState } from "react";
 import { Navbar } from "@/components/ui/navbar";
 import { Button } from "@/components/ui/button";
 import EarthScene from "@/components/ui/globe";
-import { ChatLauncher } from "@/components/ChatLauncher";
-import { ChatPanel } from "@/components/ChatPanel";
 
 import "./glow.css";
 import LoginComponent from "@/components/ui/Login_component";
@@ -91,10 +89,13 @@ export default function Home() {
               </p>
               <div className="mt-8 flex gap-4">
                 <Button size="lg" className="bg-white text-black hover:bg-white/90" asChild>
+                  <a href="">Log In</a>
+                </Button>
+                <Button size="lg" className="bg-white text-black hover:bg-white/90" asChild>
                   <a href="/chat">Try Chat Interface</a>
                 </Button>
-                <Button size="lg" variant="outline" className="border-white/20 text-white hover:bg-white/10" asChild>
-                  <a href="/learning">Globe Learning</a>
+                <Button size="lg" className="bg-white text-black hover:bg-white/90" asChild>
+                  <a href="/upload">Learn More</a>
                 </Button>
               </div>
             </div>
@@ -145,9 +146,9 @@ export default function Home() {
             {/* Rainbolt Images */}
             <div className="flex gap-4 mt-8">
               <div className="flex-1">
-                <img 
-                  src="/Rainbolt-JB1-High-Quality-PHOTO-e1666190809190-1000x669.jpg" 
-                  alt="Rainbolt Cool" 
+                <img
+                  src="/rainbolt_cool.jpg"
+                  alt="Rainbolt Cool"
                   className="w-full h-32 object-cover rounded-lg bg-white/10"
                 />
                 <p className="text-white/60 text-sm mt-2 text-center">Trevor Rainbolt</p>
