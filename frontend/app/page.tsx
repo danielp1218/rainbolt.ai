@@ -123,7 +123,7 @@ export default function Home() {
               </p>
               <div className="mt-8 flex gap-4">
                 <Button size="lg" className="bg-white text-black hover:bg-white/90" asChild>
-                  <a href="/chat">Try Rainbolt AI</a>
+                  <a href="/learning">Try Rainbolt AI</a>
                 </Button>
                 <Button size="lg" variant="outline" className="border-white/20 text-white hover:bg-white/10" asChild>
                   <a href="#about">Watch Demo</a>
@@ -250,39 +250,39 @@ export default function Home() {
 
       {/* Team Section */}
       <section id="team" data-section-id="3" className="relative h-screen snap-start">
-        <div className="absolute inset-0 flex items-center justify-start pl-16">
-          <div className="max-w-2xl">
+        <div className="absolute inset-0 flex items-center justify-start pl-16 w-full">
+          <div className="flex flex-col items-start w-full">
             <h2 className="text-5xl font-bold text-white mb-12">
               Meet Our Team
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="p-6 bg-white/5 rounded-lg backdrop-blur-sm text-center">
+              <div className="p-6 bg-white/5 rounded-lg backdrop-blur-sm text-center w-52">
                 <div className="w-20 h-20 rounded-full bg-white/10 mx-auto mb-4 overflow-hidden">
                   <img src="/IMG_0628.jpg" alt="Daniel Pu" className="w-full h-full object-cover" />
                 </div>
                 <h3 className="text-xl font-bold text-white mb-2">Daniel Pu</h3>
-                <p className="text-white/80">Computer Science</p>
+                <p className="text-white/80">UW CS</p>
               </div>
               <div className="p-6 bg-white/5 rounded-lg backdrop-blur-sm text-center">
                 <div className="w-20 h-20 rounded-full bg-white/10 mx-auto mb-4 overflow-hidden">
                   <img src="/IMG_0623.jpg" alt="Evan Yang" className="w-full h-full object-cover" />
                 </div>
                 <h3 className="text-xl font-bold text-white mb-2">Evan Yang</h3>
-                <p className="text-white/80">Systems Design Engineering</p>
+                <p className="text-white/80">UW SYDE</p>
               </div>
               <div className="p-6 bg-white/5 rounded-lg backdrop-blur-sm text-center">
                 <div className="w-20 h-20 rounded-full bg-white/10 mx-auto mb-4 overflow-hidden">
                   <img src="/IMG_0627.jpg" alt="Daniel Liu" className="w-full h-full object-cover" />
                 </div>
                 <h3 className="text-xl font-bold text-white mb-2">Daniel Liu</h3>
-                <p className="text-white/80">Computer Science and Financial Management</p>
+                <p className="text-white/80">UW CFM</p>
               </div>
               <div className="p-6 bg-white/5 rounded-lg backdrop-blur-sm text-center">
                 <div className="w-20 h-20 rounded-full bg-white/10 mx-auto mb-4 overflow-hidden">
                   <img src="/IMG_0625.jpg" alt="Justin Wang" className="w-full h-full object-cover" />
                 </div>
                 <h3 className="text-xl font-bold text-white mb-2">Justin Wang</h3>
-                <p className="text-white/80">Management Engineering</p>
+                <p className="text-white/80">UW MGTE</p>
               </div>
             </div>
           </div>
