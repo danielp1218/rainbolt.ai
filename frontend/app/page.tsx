@@ -126,7 +126,7 @@ export default function Home() {
                   <a href="/learning">Try Rainbolt AI</a>
                 </Button>
                 <Button size="lg" variant="outline" className="border-white/20 text-white hover:bg-white/10" asChild>
-                  <a href="https://devpost.com/software/rainbolt-ai">Watch Demo</a>
+                  <a href="https://devpost.com/software/rainbolt-ai?ref_content=my-projects-tab&ref_feature=my_projects">Watch Demo</a>
                 </Button>
               </div>
             </div>
