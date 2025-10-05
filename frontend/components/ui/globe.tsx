@@ -33,6 +33,7 @@ export default function EarthScene({ markers = [], currentSection = 0, onWaterlo
   const connectionLineRef = useRef<THREE.Line | null>(null);
   const waterlooScreenPos = useRef({ x: 0, y: 0 });
   const waterlooLabelRef = useRef<HTMLDivElement | null>(null);
+  const mouseRef = useRef(new THREE.Vector2());
 
 
   // Add Waterloo as a default marker
@@ -69,7 +70,6 @@ export default function EarthScene({ markers = [], currentSection = 0, onWaterlo
     const globeUV = new THREE.Vector2();
 
     // Mouse tracking for emoji lookAt calculations
-    const mouse = new THREE.Vector2();
     const emojiRaycaster = new THREE.Raycaster();
     const targetPoint = new THREE.Vector3();
 
@@ -519,7 +519,7 @@ intensity = pow(intensity, 1.5); // Reduced exponent for larger middle gradient
       // Update emoji tracking continuously (even when mouse not moving)
       if (emojiModel) {
         // Cast ray from camera through mouse position
-        emojiRaycaster.setFromCamera(mouse, camera);
+        emojiRaycaster.setFromCamera(mouseRef.current, camera);
 
         // Get cursor point in 3D space at distance 1 from camera
         const cursorPoint = new THREE.Vector3();
@@ -632,8 +632,8 @@ intensity = pow(intensity, 1.5); // Reduced exponent for larger middle gradient
       );
 
       // Update mouse coordinates for emoji tracking
-      mouse.x = (evt.clientX / window.innerWidth) * 2 - 1;
-      mouse.y = -(evt.clientY / window.innerHeight) * 2 + 1;
+      mouseRef.current.x = (evt.clientX / window.innerWidth) * 2 - 1;
+      mouseRef.current.y = -(evt.clientY / window.innerHeight) * 2 + 1;
     }
 
     function onResize() {
@@ -718,6 +718,20 @@ intensity = pow(intensity, 1.5); // Reduced exponent for larger middle gradient
   useEffect(() => {
     currentSectionRef.current = currentSection;
   }, [currentSection]);
+
+  // Separate effect for mouse tracking to ensure it persists
+  useEffect(() => {
+    function handleMouseMove(evt: MouseEvent) {
+      mouseRef.current.x = (evt.clientX / window.innerWidth) * 2 - 1;
+      mouseRef.current.y = -(evt.clientY / window.innerHeight) * 2 + 1;
+    }
+
+    window.addEventListener("mousemove", handleMouseMove);
+
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+    };
+  }, []); // Empty dependency array ensures this runs once and persists
 
   return <div ref={mountRef} style={{ width: "100%", height: "100%" }} className="absolute inset-0" />;
 }
