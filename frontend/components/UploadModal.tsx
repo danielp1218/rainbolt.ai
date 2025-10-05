@@ -144,7 +144,7 @@ export const UploadModal: React.FC<UploadModalProps> = ({ isOpen, onClose, onCre
       title="Create New Session"
       description="Name your session and upload an image to begin"
     >
-      <div className="space-y-6">
+      <div className="space-y-6 max-h-[80vh] overflow-y-auto onWheel={(e) => e.stopPropagation()}">
         {/* Session Title Input */}
         <div>
           <label htmlFor="sessionTitle" className="block text-sm font-medium text-white/80 mb-2">
