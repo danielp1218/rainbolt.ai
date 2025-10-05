@@ -9,6 +9,7 @@ import {
   NavigationMenuList,
   NavigationMenuTrigger,
 } from "@/components/ui/navigation-menu";
+import LoginComponent from "./Login_component";
 
 
 interface NavbarProps {
@@ -38,13 +39,16 @@ export function Navbar({ currentSection }: NavbarProps) {
       className={`fixed top-0 left-0 right-0 z-[100] transition-all duration-200 ease-out transform ${isVisible ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0'
         }`}
     >
-      <div className="absolute inset-0 bg-gradient-to-b from-black/50 to-transparent pointer-events-none" />
-      <div className="container relative mx-auto px-4 py-4">
+      <div className="container relative mx-auto px-4 py-6">
         <div className="flex items-center justify-between">
+
           <div className="flex items-center gap-12">
             <Link href="/" className="text-white text-2xl font-bold hover:text-white/90 transition-colors cursor-pointer">
               rainbolt.ai
             </Link>
+            <div className="fixed top-6 right-10 z-[999]">
+              <LoginComponent />
+            </div>
             <NavigationMenu>
               <NavigationMenuList className="flex gap-8">
                 <NavigationMenuItem>

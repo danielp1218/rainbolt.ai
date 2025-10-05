@@ -4,8 +4,6 @@ import { useEffect, useState } from "react";
 import { Navbar } from "@/components/ui/navbar";
 import { Button } from "@/components/ui/button";
 import EarthScene from "@/components/ui/globe";
-import { ChatLauncher } from "@/components/ChatLauncher";
-import { ChatPanel } from "@/components/ChatPanel";
 
 import "./glow.css";
 import LoginComponent from "@/components/ui/Login_component";
@@ -86,6 +84,9 @@ export default function Home() {
               </p>
               <div className="mt-8 flex gap-4">
                 <Button size="lg" className="bg- text-black hover:bg-white/90" asChild>
+                  <a href="">Create an account</a>
+                </Button>
+                <Button size="lg" className="bg-white text-black hover:bg-white/90" asChild>
                   <a href="">Create an account</a>
                 </Button>
                 <Button size="lg" className="bg-white text-black hover:bg-white/90" asChild>
