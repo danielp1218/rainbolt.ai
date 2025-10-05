@@ -50,28 +50,28 @@ export function Navbar({ currentSection, variant = 'default' }: NavbarProps) {
               <NavigationMenu>
                 <NavigationMenuList className="flex gap-8">
                   <NavigationMenuItem>
-                    <Link href="/learning" className="text-white/80 hover:text-white transition-colors">
-                      Learning
-                    </Link>
-                  </NavigationMenuItem>
-                  <NavigationMenuItem>
                     <Link href="#features" className="text-white/80 hover:text-white transition-colors">
                       Features
                     </Link>
                   </NavigationMenuItem>
                   <NavigationMenuItem>
                     <Link href="#about" className="text-white/80 hover:text-white transition-colors">
-                      About Us
+                      About
                     </Link>
                   </NavigationMenuItem>
                   <NavigationMenuItem>
-                  <Link href="#team" className="text-white/80 hover:text-white transition-colors">
-                    Team
-                  </Link>
-                </NavigationMenuItem>
-                <NavigationMenuItem>
+                    <Link href="#team" className="text-white/80 hover:text-white transition-colors">
+                      Team
+                    </Link>
+                  </NavigationMenuItem>
+                  <NavigationMenuItem>
                     <Link href="#contact" className="text-white/80 hover:text-white transition-colors">
                       Technology
+                    </Link>
+                  </NavigationMenuItem>
+                  <NavigationMenuItem>
+                    <Link href="/learning" className="text-white/80 hover:text-white transition-colors">
+                      Learning
                     </Link>
                   </NavigationMenuItem>
                 </NavigationMenuList>
