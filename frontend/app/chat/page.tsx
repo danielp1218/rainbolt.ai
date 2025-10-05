@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import SimpleGlobe from "@/components/ui/simple-globe";
 import { ChatHeader } from "@/components/ChatHeader";
@@ -18,7 +18,8 @@ export default function ChatPage() {
     const setCurrentMarker = useChatStore((state) => state.setCurrentMarker);
     const nextMarker = useChatStore((state) => state.nextMarker);
     const previousMarker = useChatStore((state) => state.previousMarker);
-    const [isLocked, setIsLocked] = useState(true);
+    const [isLocked, setIsLocked] = useState(false); // Start unlocked so user can drag globe
+    const hasLockedRef = useRef(false); // Track if we've already locked to markers
     const [mapillaryImages, setMapillaryImages] = useState<Record<number, string[]>>({});
     const [loadingImages, setLoadingImages] = useState<Record<number, boolean>>({});
 
@@ -63,10 +64,15 @@ export default function ChatPage() {
         };
     }, [searchParams, uploadedImageUrl]); // Re-run when URL params or image changes
 
-    // Test markers - will be replaced by actual markers from WebSocket
+    // Lock globe when markers are loaded
     useEffect(() => {
-        console.log('Markers updated:', markers);
-    }, [markers]);
+        console.log('Markers updated, count:', markers.length);
+        if (markers.length > 0 && !hasLockedRef.current) {
+            console.log('Locking globe to first marker');
+            setIsLocked(true);
+            hasLockedRef.current = true;
+        }
+    }, [markers.length]);
 
     // Fetch Mapillary images when current marker changes
     useEffect(() => {

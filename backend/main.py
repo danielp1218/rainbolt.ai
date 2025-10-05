@@ -120,9 +120,22 @@ async def get_mapillary_images_endpoint(request: MapillaryRequest):
             "images": images,
             "count": len(images)
         }
+    except ValueError as e:
+        # API key not set - return empty list instead of error
+        print(f"Mapillary API key not configured: {e}")
+        return {
+            "success": True,
+            "images": [],
+            "count": 0
+        }
     except Exception as e:
         print(f"Error fetching Mapillary images: {e}")
-        raise HTTPException(status_code=500, detail=f"Error fetching Mapillary images: {str(e)}")
+        # Return empty list instead of raising error
+        return {
+            "success": True,
+            "images": [],
+            "count": 0
+        }
 
 
 @app.websocket("/ws/chat/{session_id}")

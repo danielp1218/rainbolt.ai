@@ -21,6 +21,7 @@ type ChatState = {
     messages: Message[];
     sending: boolean;
     thinking: boolean;
+    statusMessage: string | null; // Temporary status message
     ws: WebSocket | null;
     sessionId: string | null;
     currentAssistantMessage: string;
@@ -47,6 +48,7 @@ export const useChatStore = create<ChatState>()(
             messages: [],
             sending: false,
             thinking: false,
+            statusMessage: null,
             ws: null,
             sessionId: null,
             currentAssistantMessage: '',
@@ -114,10 +116,18 @@ export const useChatStore = create<ChatState>()(
                     const data = JSON.parse(event.data);
                     const state = get();
 
+                    console.log('WebSocket message received:', data.type, data);
+
                     if (data.type === 'status') {
-                        // Update thinking status
-                        set({ thinking: true });
+                        // Update thinking status and show temporary status message
+                        console.log('Setting status message:', data.message);
+                        set({ thinking: true, statusMessage: data.message });
                     } else if (data.type === 'reasoning_chunk' || data.type === 'chat_response_chunk') {
+                        // Clear status message when actual content starts streaming
+                        if (state.statusMessage) {
+                            set({ statusMessage: null });
+                        }
+                        
                         // Append to current assistant message (streaming)
                         const updatedText = state.currentAssistantMessage + data.text;
                         set({ currentAssistantMessage: updatedText });
@@ -202,7 +212,7 @@ export const useChatStore = create<ChatState>()(
                             delete (ws as any).sendingTimeout;
                         }
 
-                        set({ thinking: false, sending: false, currentAssistantMessage: '' });
+                        set({ thinking: false, sending: false, currentAssistantMessage: '', statusMessage: null });
                     } else if (data.type === 'error') {
                         // Handle error
 
@@ -223,14 +233,15 @@ export const useChatStore = create<ChatState>()(
                             messages: [...state.messages, errorMessage],
                             thinking: false,
                             sending: false,
-                            currentAssistantMessage: ''
+                            currentAssistantMessage: '',
+                            statusMessage: null
                         });
                     }
                 };
 
                 ws.onerror = (error) => {
                     console.error('WebSocket error:', error);
-                    set({ thinking: false, sending: false });
+                    set({ thinking: false, sending: false, statusMessage: null });
                     reject(error);
                 };
 
@@ -240,7 +251,7 @@ export const useChatStore = create<ChatState>()(
                         reason: event.reason,
                         wasClean: event.wasClean
                     });
-                    set({ thinking: false, sending: false, ws: null });
+                    set({ thinking: false, sending: false, ws: null, statusMessage: null });
                     
                     // Attempt to reconnect if connection was not closed intentionally
                     if (!event.wasClean && event.code !== 1000) {
@@ -280,10 +291,19 @@ export const useChatStore = create<ChatState>()(
                         const data = JSON.parse(event.data);
                         const state = get();
 
+                        console.log('WebSocket message received (new session):', data.type, data);
+
                         if (data.type === 'status') {
-                            // Update thinking status
-                            set({ thinking: true });
+                            // Update thinking status and show temporary status message
+                            console.log('Setting status message (new session):', data.message);
+                            set({ thinking: true, statusMessage: data.message });
                         } else if (data.type === 'reasoning_chunk' || data.type === 'chat_response_chunk') {
+                            // Clear status message when actual content starts streaming
+                            if (state.statusMessage) {
+                                console.log('Clearing status message, content is streaming');
+                                set({ statusMessage: null });
+                            }
+                            
                             // Append to current assistant message (streaming)
                             const updatedText = state.currentAssistantMessage + data.text;
                             set({ currentAssistantMessage: updatedText });
@@ -368,7 +388,7 @@ export const useChatStore = create<ChatState>()(
                                 delete (ws as any).sendingTimeout;
                             }
 
-                            set({ thinking: false, sending: false, currentAssistantMessage: '' });
+                            set({ thinking: false, sending: false, currentAssistantMessage: '', statusMessage: null });
                         } else if (data.type === 'error') {
                             // Handle error
 
@@ -389,14 +409,15 @@ export const useChatStore = create<ChatState>()(
                                 messages: [...state.messages, errorMessage],
                                 thinking: false,
                                 sending: false,
-                                currentAssistantMessage: ''
+                                currentAssistantMessage: '',
+                                statusMessage: null
                             });
                         }
                     };
 
                     ws.onerror = (error) => {
                         console.error('WebSocket error:', error);
-                        set({ thinking: false, sending: false });
+                        set({ thinking: false, sending: false, statusMessage: null });
                         reject(error);
                     };
 
@@ -406,7 +427,7 @@ export const useChatStore = create<ChatState>()(
                             reason: event.reason,
                             wasClean: event.wasClean
                         });
-                        set({ thinking: false, sending: false, ws: null });
+                        set({ thinking: false, sending: false, ws: null, statusMessage: null });
                         
                         // Attempt to reconnect if connection was not closed intentionally
                         if (!event.wasClean && event.code !== 1000) {
@@ -423,7 +444,7 @@ export const useChatStore = create<ChatState>()(
                 const { ws } = get();
                 if (ws) {
                     ws.close();
-                    set({ ws: null, thinking: false, sending: false });
+                    set({ ws: null, thinking: false, sending: false, statusMessage: null });
                 }
             },
 
@@ -529,7 +550,7 @@ export const useChatStore = create<ChatState>()(
             },
 
     clear: () => {
-        set({ messages: [], currentAssistantMessage: '', uploadedImageUrl: null, hasProcessedSession: false, markers: [], currentMarker: 0 });
+        set({ messages: [], currentAssistantMessage: '', uploadedImageUrl: null, hasProcessedSession: false, markers: [], currentMarker: 0, statusMessage: null });
     },
         }),
         {

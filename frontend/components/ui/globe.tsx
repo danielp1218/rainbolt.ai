@@ -122,10 +122,10 @@ const defaultMarkers = [
 
         // Position the emoji at the WORLD center, same as globe center
         // Globe is at globeGroup position (-6, 0, -0.5), so put emoji there too
-        emojiModel.position.set(-6, 0, -0.5);
+        emojiModel.position.set(-5.8, 0, -0.5);
 
         // Make it MUCH bigger so we can definitely see it
-        emojiModel.scale.set(0.8, 0.8, 0.8);
+        emojiModel.scale.set(0.3, 0.3, 0.3);
         
         // Store the original rotation to account for model facing -Y in Blender
         // Don't apply fixed rotation - let lookAt() handle full orientation
@@ -172,7 +172,7 @@ const defaultMarkers = [
         scene.add(emojiLight);
 
         // Add a second fill light from the front
-        const emojiFillLight = new THREE.PointLight(0xffffff, 25, 100);
+        const emojiFillLight = new THREE.PointLight(0xffffff, 15, 100);
         emojiFillLight.position.set(
           emojiModel.position.x + 2, // In front of emoji
           emojiModel.position.y,
