@@ -260,40 +260,6 @@ export default function Home() {
       {/* Contact Section */}
       <section id="contact" data-section-id="4" className="relative h-screen snap-start">
         <div className="absolute inset-0 flex items-center justify-center">
-          <div className="container mx-auto px-4 py-16">
-            <h2 className="text-4xl font-bold text-white mb-12 text-center">
-              Get in Touch
-            </h2>
-            <div className="max-w-md mx-auto">
-              <div className="bg-white/10 p-8 rounded-lg backdrop-blur-sm">
-                <form className="space-y-6">
-                  <div>
-                    <label className="block text-white mb-2">Name</label>
-                    <input
-                      type="text"
-                      className="w-full px-4 py-2 bg-black/50 text-white rounded border border-white/20"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-white mb-2">Email</label>
-                    <input
-                      type="email"
-                      className="w-full px-4 py-2 bg-black/50 text-white rounded border border-white/20"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-white mb-2">Message</label>
-                    <textarea
-                      className="w-full px-4 py-2 bg-black/50 text-white rounded border border-white/20 h-32"
-                    ></textarea>
-                  </div>
-                  <Button type="submit" className="w-full bg-white text-black hover:bg-white/90">
-                    Send Message
-                  </Button>
-                </form>
-              </div>
-            </div>
-          </div>
         </div>
       </section>
     </div >

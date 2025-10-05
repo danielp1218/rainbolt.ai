@@ -666,7 +666,7 @@ intensity = pow(intensity, 1.5); // Reduced exponent for larger middle gradient
       1: { position: [6, -4, 2], lookAt: [-7.7, 1, -0.85] },      // Features - globe at bottom, camera lower
       2: { position: [12, 0, -24], lookAt: [-7.7, 0, 0] },       // About - globe on left, camera further away
       3: { position: [10, -2.5, 1], lookAt: [-7.7, 0, 10] },       // Team - camera much closer, globe on right, zoom on Waterloo
-      4: { position: [-18, 0, -0.5], lookAt: [-7.7, 0, -3] },       // Contact - camera far left, looking at globe to center it left, emoji appears right
+      4: { position: [50, 30, 40], lookAt: [100, 50, 80] },       // Contact - camera zoomed OUT into the stars
     };
 
     const config = positions[currentSection] || positions[0];
