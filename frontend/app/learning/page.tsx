@@ -6,6 +6,7 @@ import { useGlobeSessions } from '@/hooks/useGlobeSessions';
 import { useSessionLinks } from '@/hooks/useSessionLinks';
 import { Button } from '@/components/ui/Button';
 import { Navbar } from '@/components/ui/Navbar';
+import StarryNightBackground from '@/components/ui/starry-night-background';
 import { GlobeSessionWithData, deleteSessionLinks } from '@/lib/globe-database';
 import { Plus, Star, Globe, X, Trash2, Settings, Link } from 'lucide-react';
 
@@ -243,6 +244,65 @@ export default function LearningPage() {
   useEffect(() => {
     nodesRef.current = nodes;
   }, [nodes]);
+
+  // Prevent overscroll / rubber-band (bounce) effect on touch and wheel when at page top or bottom
+  useEffect(() => {
+    // Apply CSS overscroll behavior where supported
+    const prevOverscroll = document.documentElement.style.overscrollBehavior;
+    document.documentElement.style.overscrollBehavior = 'none';
+
+    let startY = 0;
+    function onTouchStart(e: TouchEvent) {
+      if (e.touches && e.touches.length > 0) startY = e.touches[0].clientY;
+    }
+
+    function onTouchMove(e: TouchEvent) {
+      if (!e.touches || e.touches.length === 0) return;
+      const currentY = e.touches[0].clientY;
+      const diff = currentY - startY; // positive when swiping down
+
+      const scroller = document.scrollingElement || document.documentElement;
+      const scrollTop = scroller.scrollTop;
+      const scrollHeight = scroller.scrollHeight;
+      const clientHeight = document.documentElement.clientHeight;
+
+      // Prevent scrolling past top
+      if (scrollTop === 0 && diff > 0) {
+        e.preventDefault();
+      }
+
+      // Prevent scrolling past bottom
+      if (scrollTop + clientHeight >= scrollHeight && diff < 0) {
+        e.preventDefault();
+      }
+    }
+
+    function onWheel(e: WheelEvent) {
+      const deltaY = e.deltaY;
+      const scroller = document.scrollingElement || document.documentElement;
+      const scrollTop = scroller.scrollTop;
+      const scrollHeight = scroller.scrollHeight;
+      const clientHeight = document.documentElement.clientHeight;
+
+      if (deltaY < 0 && scrollTop === 0) {
+        e.preventDefault();
+      }
+      if (deltaY > 0 && scrollTop + clientHeight >= scrollHeight) {
+        e.preventDefault();
+      }
+    }
+
+    window.addEventListener('touchstart', onTouchStart, { passive: true });
+    window.addEventListener('touchmove', onTouchMove, { passive: false } as AddEventListenerOptions);
+    window.addEventListener('wheel', onWheel, { passive: false } as AddEventListenerOptions);
+
+    return () => {
+      document.documentElement.style.overscrollBehavior = prevOverscroll || '';
+      window.removeEventListener('touchstart', onTouchStart as EventListener);
+      window.removeEventListener('touchmove', onTouchMove as EventListener);
+      window.removeEventListener('wheel', onWheel as EventListener);
+    };
+  }, []);
 
   // Add keyboard event listener for ESC key to cancel linking
   useEffect(() => {
@@ -775,12 +835,7 @@ export default function LearningPage() {
           }
         }}
         style={{
-          background: `
-            radial-gradient(circle at 20% 30%, rgba(0, 163, 255, 0.1) 0%, transparent 50%),
-            radial-gradient(circle at 80% 70%, rgba(255, 26, 26, 0.1) 0%, transparent 50%),
-            radial-gradient(circle at 50% 50%, rgba(128, 0, 128, 0.05) 0%, transparent 70%),
-            #000
-          `,
+          background: 'transparent',
           cursor: isLinking ? 'crosshair' : 'default'
         }}
       >
@@ -798,18 +853,8 @@ export default function LearningPage() {
             setSettingsOpenNodeId(null);
           }}
         >
-          {Array.from({ length: 100 }).map((_, i) => (
-            <Star
-              key={i}
-              className="absolute text-white/20"
-              size={Math.random() * 4 + 1}
-              style={{
-                left: `${Math.random() * 100}%`,
-                top: `${Math.random() * 100}%`,
-                animation: `twinkle ${Math.random() * 3 + 2}s infinite`,
-              }}
-            />
-          ))}
+          {/* Reusable THREE.js starry background (inlined star generation) */}
+          <StarryNightBackground numStars={4500} />
         </div>
 
         {/* Header */}
