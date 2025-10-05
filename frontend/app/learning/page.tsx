@@ -745,8 +745,8 @@ export default function LearningPage() {
             <h1 className="text-4xl font-bold mb-4">Please log in to explore</h1>
             <p className="text-white/70">You need to be authenticated to access your constellation.</p>
             <div className="mt-4 text-sm text-white/50">
-              Debug: User = {user ? 'authenticated' : 'null'}, Loading = {isLoading ? 'true' : 'false'}
-            </div>
+{/*               Debug: User = {user ? 'authenticated' : 'null'}, Loading = {isLoading ? 'true' : 'false'}
+ */}            </div>
           </div>
         </div>
       </div>
