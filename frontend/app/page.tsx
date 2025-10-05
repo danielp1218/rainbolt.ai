@@ -49,11 +49,6 @@ export default function Home() {
       {/* Navigation */}
       <Navbar currentSection={currentSection} />
 
-      {/* Login Component - Fixed Top Right */}
-      <div className="fixed top-6 right-10 z-[999]">
-        <LoginComponent />
-      </div>
-
       {/* UWaterloo Badge - Animated entry on Meet the Team section */}
       <div className={`fixed right-6 top-1/2 transform -translate-y-1/2 z-50 transition-all duration-700 ease-out ${currentSection === 3
         ? 'translate-x-0 opacity-100'
@@ -89,14 +84,12 @@ export default function Home() {
               </p>
               <div className="mt-8 flex gap-4">
                 <Button size="lg" className="bg-white text-black hover:bg-white/90" asChild>
-                  <a href="">Log In</a>
+                  <a href="">Create an account</a>
                 </Button>
                 <Button size="lg" className="bg-white text-black hover:bg-white/90" asChild>
-                  <a href="/chat">Try Chat Interface</a>
+                  <a href="/chat">Try chat interface</a>
                 </Button>
-                <Button size="lg" className="bg-white text-black hover:bg-white/90" asChild>
-                  <a href="/upload">Learn More</a>
-                </Button>
+
               </div>
             </div>
           </div>
