@@ -28,6 +28,30 @@ export default function Home() {
     });
   };
 
+  // Detect initial section on mount/remount
+  useEffect(() => {
+    const detectCurrentSection = () => {
+      const sections = document.querySelectorAll('section[data-section-id]');
+      const windowHeight = window.innerHeight;
+
+      sections.forEach((section) => {
+        const rect = section.getBoundingClientRect();
+        const sectionMiddle = rect.top + rect.height / 2;
+
+        // Check if section middle is in viewport center area
+        if (sectionMiddle >= 0 && sectionMiddle <= windowHeight) {
+          const sectionId = parseInt(section.getAttribute('data-section-id') || '0');
+          setCurrentSection(sectionId);
+        }
+      });
+    };
+
+    // Run detection after a short delay to ensure DOM is ready
+    const timer = setTimeout(detectCurrentSection, 100);
+
+    return () => clearTimeout(timer);
+  }, []); // Only run on mount
+
   const animateCount = () => {
     const targetNumber = 955199;
     const duration = 2000; // 2 seconds
@@ -64,7 +88,7 @@ export default function Home() {
     });
 
     return () => observer.disconnect();
-  }, []);
+  }, [hasAnimated]); // Include hasAnimated to prevent stale closure
 
   return (
     <div className="relative h-screen overflow-y-auto snap-y snap-mandatory scroll-smooth">
@@ -114,7 +138,7 @@ export default function Home() {
       <section id="features" data-section-id="1" className="relative h-screen snap-start">
         <div className="absolute inset-0 flex items-start pt-20 overflow-y-auto">
           <div className="container mx-auto px-4 pb-20">
-            <h2 className="text-4xl font-bold text-white mb-12 text-center [text-shadow:0_0_10px_#fff,0_0_20px_#ff1a1a,0_0_30px_#800080] [animation:textGlowRed_3s_ease-in-out_infinite_alternate]">
+            <h2 className="text-4xl font-bold text-white mb-12 text-center [text-shadow:0_0_10px_#fff,0_0_20px_#0066cc] [animation:textGlow_3s_ease-in-out_infinite_alternate]">
               Features
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-6xl mx-auto">
@@ -251,7 +275,7 @@ export default function Home() {
                   <img src="/IMG_0627.jpg" alt="Daniel Liu" className="w-full h-full object-cover" />
                 </div>
                 <h3 className="text-xl font-bold text-white mb-2">Daniel Liu</h3>
-                <p className="text-white/80">Computer Science and Financial Science</p>
+                <p className="text-white/80">Computer Science and Financial Management</p>
               </div>
               <div className="p-6 bg-white/5 rounded-lg backdrop-blur-sm text-center">
                 <div className="w-20 h-20 rounded-full bg-white/10 mx-auto mb-4 overflow-hidden">

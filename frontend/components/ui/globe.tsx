@@ -34,13 +34,31 @@ export default function EarthScene({ markers = [], currentSection = 0, onWaterlo
   const waterlooScreenPos = useRef({ x: 0, y: 0 });
   const waterlooLabelRef = useRef<HTMLDivElement | null>(null);
   const mouseRef = useRef(new THREE.Vector2());
+  const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
+  const sceneRef = useRef<THREE.Scene | null>(null);
+  const animationFrameRef = useRef<number | null>(null);
 
 
   // Add Waterloo as a default marker
   const defaultMarkers = [
     { lat: 43.4643, long: -80.5204, label: "Waterloo, Canada" },
-  ]; useEffect(() => {
+  ];
+
+  useEffect(() => {
+    // Cleanup any existing renderer before initializing
+    if (rendererRef.current) {
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+      rendererRef.current.dispose();
+      rendererRef.current = null;
+      sceneRef.current = null;
+      cameraRef.current = null;
+    }
+
     const scene = new THREE.Scene();
+    sceneRef.current = scene;
+
     const camera = new THREE.PerspectiveCamera(
       45,
       window.innerWidth / window.innerHeight,
@@ -53,7 +71,14 @@ export default function EarthScene({ markers = [], currentSection = 0, onWaterlo
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(window.devicePixelRatio);
+    rendererRef.current = renderer;
+
     if (mountRef.current) {
+      // Clear any existing canvas elements first
+      const existingCanvas = mountRef.current.querySelector('canvas');
+      if (existingCanvas) {
+        mountRef.current.removeChild(existingCanvas);
+      }
       mountRef.current.appendChild(renderer.domElement);
     }
 
@@ -508,12 +533,15 @@ intensity = pow(intensity, 1.5); // Reduced exponent for larger middle gradient
     }
 
     function animate() {
+      // Store animation frame ID for cleanup
+      animationFrameRef.current = requestAnimationFrame(animate);
+
       // Smooth camera movement (synchronized slow transitions)
       if (cameraRef.current) {
-        cameraRef.current.position.lerp(targetPosition.current, 0.015);
+        cameraRef.current.position.lerp(targetPosition.current, 0.009);
 
         // Smooth orbit controls target (same rate for consistency)
-        orbitCtrl.target.lerp(targetLookAt.current, 0.015);
+        orbitCtrl.target.lerp(targetLookAt.current, 0.009);
       }
 
       // Update emoji tracking continuously (even when mouse not moving)
@@ -576,15 +604,15 @@ intensity = pow(intensity, 1.5); // Reduced exponent for larger middle gradient
       // Handle rotation: either animate to target rotation (Team section) or continue normal rotation
       if (currentSectionRef.current === 3) {
         // Fast rotate to bring Waterloo to the front and tilt downwards
-        globeGroup.rotation.y += (targetRotationY.current - globeGroup.rotation.y) * 0.15;
-        globeGroup.rotation.x += (targetRotationX.current - globeGroup.rotation.x) * 0.15;
-        globeGroup.rotation.z += (targetRotationZ.current - globeGroup.rotation.z) * 0.15;
+        globeGroup.rotation.y += (targetRotationY.current - globeGroup.rotation.y) * 0.09;
+        globeGroup.rotation.x += (targetRotationX.current - globeGroup.rotation.x) * 0.09;
+        globeGroup.rotation.z += (targetRotationZ.current - globeGroup.rotation.z) * 0.09;
       } else {
         // Normal continuous rotation for other sections
         globeGroup.rotation.y += 0.001;
         // Reset X and Z rotation for other sections
-        globeGroup.rotation.x += (0 - globeGroup.rotation.x) * 0.05;
-        globeGroup.rotation.z += (0 - globeGroup.rotation.z) * 0.05;
+        globeGroup.rotation.x += (0 - globeGroup.rotation.x) * 0.03;
+        globeGroup.rotation.z += (0 - globeGroup.rotation.z) * 0.03;
       }
 
       // Animate streak particles (head and tail movement)
@@ -620,8 +648,6 @@ intensity = pow(intensity, 1.5); // Reduced exponent for larger middle gradient
 
       handleRaycast();
       orbitCtrl.update();
-
-      requestAnimationFrame(animate);
     }
     animate();
 
@@ -646,20 +672,37 @@ intensity = pow(intensity, 1.5); // Reduced exponent for larger middle gradient
     window.addEventListener("resize", onResize);
 
     return () => {
+      // Cancel animation frame
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+
       window.removeEventListener("mousemove", onMouseMove);
       window.removeEventListener("resize", onResize);
+
+      // Cleanup DOM elements
       if (mountRef.current) {
-        mountRef.current.removeChild(renderer.domElement);
+        if (renderer.domElement && mountRef.current.contains(renderer.domElement)) {
+          mountRef.current.removeChild(renderer.domElement);
+        }
         if (waterlooLabelRef.current && mountRef.current.contains(waterlooLabelRef.current)) {
           mountRef.current.removeChild(waterlooLabelRef.current);
         }
       }
+
+      // Dispose Three.js resources
       renderer.dispose();
+      rendererRef.current = null;
+      sceneRef.current = null;
+      cameraRef.current = null;
     };
   }, []);
 
   // Update camera position when section changes
   useEffect(() => {
+    // Don't update if scene isn't initialized yet
+    if (!cameraRef.current) return;
+
     // Define camera positions for each section
     const positions: Record<number, { position: [number, number, number]; lookAt: [number, number, number] }> = {
       0: { position: [7, 0, 4], lookAt: [-7.7, 0, 0] },        // Hero - default view
