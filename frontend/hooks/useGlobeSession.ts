@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useAuth0Firebase } from './useAuth0Firebase';
-import { createGlobeSession, getUserGlobeSessions, GlobeSession } from '@/lib/globe-database';
+import { createGlobeSession, getUserGlobeSessions, GlobeSessionWithData } from '@/lib/globe-database';
 
 export function useGlobeSession(autoCreate: boolean = false) {
     const { user, firebaseUserId } = useAuth0Firebase();
-    const [currentSession, setCurrentSession] = useState<GlobeSession | null>(null);
-    const [sessions, setSessions] = useState<GlobeSession[]>([]);
+    const [currentSession, setCurrentSession] = useState<GlobeSessionWithData | null>(null);
+    const [sessions, setSessions] = useState<GlobeSessionWithData[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -32,7 +32,7 @@ export function useGlobeSession(autoCreate: boolean = false) {
                     );
 
                     if (result.success && result.id) {
-                        const newSession: GlobeSession = {
+                        const newSession: GlobeSessionWithData = {
                             id: result.id,
                             userId: firebaseUserId,
                             title: `Session ${new Date().toLocaleDateString()}`,
@@ -40,8 +40,7 @@ export function useGlobeSession(autoCreate: boolean = false) {
                             createdAt: new Date(),
                             updatedAt: new Date(),
                             lastAccessedAt: new Date(),
-                            globeImages: [],
-                            chatHistory: []
+                            data: {}
                         };
                         setCurrentSession(newSession);
                         setSessions([newSession, ...userSessions]);
@@ -66,7 +65,7 @@ export function useGlobeSession(autoCreate: boolean = false) {
         );
 
         if (result.success && result.id) {
-            const newSession: GlobeSession = {
+            const newSession: GlobeSessionWithData = {
                 id: result.id,
                 userId: firebaseUserId,
                 title: title || `Session ${new Date().toLocaleDateString()}`,
@@ -74,8 +73,7 @@ export function useGlobeSession(autoCreate: boolean = false) {
                 createdAt: new Date(),
                 updatedAt: new Date(),
                 lastAccessedAt: new Date(),
-                globeImages: [],
-                chatHistory: []
+                data: {}
             };
             setCurrentSession(newSession);
             setSessions([newSession, ...sessions]);

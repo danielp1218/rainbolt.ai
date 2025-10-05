@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useAuth0Firebase } from './useAuth0Firebase';
-import { getUserGlobeSessions, createGlobeSession, deleteGlobeSession, GlobeSession } from '@/lib/globe-database';
+import { getUserGlobeSessions, createGlobeSession, deleteGlobeSession, GlobeSessionWithData, updateSessionData, updateSessionDataKey } from '@/lib/globe-database';
 
 export function useGlobeSessions() {
     const { firebaseUserId } = useAuth0Firebase();
-    const [sessions, setSessions] = useState<GlobeSession[]>([]);
+    const [sessions, setSessions] = useState<GlobeSessionWithData[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -70,6 +70,46 @@ export function useGlobeSessions() {
         }
     };
 
+    // Update session data
+    const updateSessionDataWithRefresh = async (sessionId: string, newData: any) => {
+        try {
+            const result = await updateSessionData(sessionId, newData);
+            
+            if (result.success) {
+                // Refresh sessions to reflect changes
+                await loadSessions();
+            } else {
+                throw new Error(result.error || 'Failed to update session data');
+            }
+            
+            return result;
+        } catch (err: any) {
+            console.error('Error updating session data:', err);
+            setError(err.message);
+            throw err;
+        }
+    };
+
+    // Update specific key in session data
+    const updateSessionDataKeyWithRefresh = async (sessionId: string, key: string, value: any) => {
+        try {
+            const result = await updateSessionDataKey(sessionId, key, value);
+            
+            if (result.success) {
+                // Refresh sessions to reflect changes
+                await loadSessions();
+            } else {
+                throw new Error(result.error || 'Failed to update session data key');
+            }
+            
+            return result;
+        } catch (err: any) {
+            console.error('Error updating session data key:', err);
+            setError(err.message);
+            throw err;
+        }
+    };
+
     // Load sessions when user changes
     useEffect(() => {
         loadSessions();
@@ -81,6 +121,8 @@ export function useGlobeSessions() {
         error,
         createNewSession,
         deleteSession,
+        updateSessionData: updateSessionDataWithRefresh,
+        updateSessionDataKey: updateSessionDataKeyWithRefresh,
         refreshSessions: loadSessions
     };
 }

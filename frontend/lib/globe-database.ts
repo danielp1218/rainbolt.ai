@@ -12,6 +12,35 @@ import {
 } from 'firebase/firestore';
 import { db } from './firebase';
 
+// Serialization helpers for session data
+export const serializeSessionData = (data: any): Record<string, string> => {
+  const serialized: Record<string, string> = {};
+  
+  for (const [key, value] of Object.entries(data)) {
+    if (value !== null && value !== undefined) {
+      serialized[key] = JSON.stringify(value);
+    }
+  }
+  
+  return serialized;
+};
+
+export const deserializeSessionData = (serializedData: Record<string, string>): any => {
+  const deserialized: any = {};
+  
+  for (const [key, value] of Object.entries(serializedData)) {
+    try {
+      deserialized[key] = JSON.parse(value);
+    } catch (error) {
+      console.warn(`Failed to parse session data for key "${key}":`, error);
+      // If parsing fails, keep as string
+      deserialized[key] = value;
+    }
+  }
+  
+  return deserialized;
+};
+
 // TypeScript interfaces for your data structures
 export interface UserSession {
   id: string;
@@ -34,24 +63,22 @@ export interface GlobeSession {
   updatedAt: any;
   lastAccessedAt: any;
   
-  // Globe interaction data
-  globeImages: Array<{
-    id: string;
-    imageUrl: string; // Screenshot of the globe view
-    location: { lat: number; lng: number };
-    locationName?: string;
-    timestamp: any;
-    userNote?: string;
-  }>;
+  // Serialized data stored as strings in database, deserialized as objects in memory
+  data: Record<string, string>; // In database: strings
+}
+
+// Globe Session with deserialized data for use in components
+export interface GlobeSessionWithData {
+  id: string;
+  userId: string;
+  title: string;
+  status: 'active' | 'completed';
+  createdAt: any;
+  updatedAt: any;
+  lastAccessedAt: any;
   
-  // Chat history during globe exploration
-  chatHistory: Array<{
-    id: string;
-    role: 'user' | 'ai';
-    message: string;
-    timestamp: any;
-    relatedImage?: string; // Reference to globe image ID
-  }>;
+  // Deserialized data as objects for use in application
+  data: any; // In memory: objects
 }
 
 // User session management functions
@@ -132,8 +159,7 @@ export const createGlobeSession = async (
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
       lastAccessedAt: serverTimestamp(),
-      globeImages: [],
-      chatHistory: []
+      data: {}
     };
 
     const docRef = doc(collection(db, 'globeSessions'), sessionId);
@@ -146,13 +172,21 @@ export const createGlobeSession = async (
   }
 };
 
-export const getGlobeSession = async (sessionId: string): Promise<GlobeSession | null> => {
+export const getGlobeSession = async (sessionId: string): Promise<GlobeSessionWithData | null> => {
   try {
     const docRef = doc(db, 'globeSessions', sessionId);
     const sessionSnap = await getDoc(docRef);
 
     if (sessionSnap.exists()) {
-      return { id: sessionSnap.id, ...sessionSnap.data() } as GlobeSession;
+      const sessionData = { id: sessionSnap.id, ...sessionSnap.data() } as GlobeSession;
+      
+      // Deserialize the data field from strings to objects
+      const deserializedSession: GlobeSessionWithData = {
+        ...sessionData,
+        data: deserializeSessionData(sessionData.data || {})
+      };
+      
+      return deserializedSession;
     } else {
       return null;
     }
@@ -162,14 +196,22 @@ export const getGlobeSession = async (sessionId: string): Promise<GlobeSession |
   }
 };
 
-export const getUserGlobeSessions = async (userId: string): Promise<GlobeSession[]> => {
+export const getUserGlobeSessions = async (userId: string): Promise<GlobeSessionWithData[]> => {
   try {
     const q = query(collection(db, 'globeSessions'), where('userId', '==', userId));
     const querySnapshot = await getDocs(q);
     
-    const sessions: GlobeSession[] = [];
+    const sessions: GlobeSessionWithData[] = [];
     querySnapshot.forEach((doc) => {
-      sessions.push({ id: doc.id, ...doc.data() } as GlobeSession);
+      const sessionData = { id: doc.id, ...doc.data() } as GlobeSession;
+      
+      // Deserialize the data field from strings to objects
+      const deserializedSession: GlobeSessionWithData = {
+        ...sessionData,
+        data: deserializeSessionData(sessionData.data || {})
+      };
+      
+      sessions.push(deserializedSession);
     });
 
     return sessions;
@@ -187,6 +229,55 @@ export const deleteGlobeSession = async (sessionId: string) => {
   } catch (error) {
     console.error('Error deleting globe session:', error);
     return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+  }
+};
+
+// Update session data with automatic serialization
+export const updateSessionData = async (
+  sessionId: string,
+  newData: any
+) => {
+  try {
+    const docRef = doc(db, 'globeSessions', sessionId);
+    
+    // Serialize the data before storing
+    const serializedData = serializeSessionData(newData);
+    
+    await updateDoc(docRef, {
+      data: serializedData,
+      updatedAt: serverTimestamp(),
+      lastAccessedAt: serverTimestamp()
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error updating session data:', error);
+    return { success: false, error: (error as Error).message };
+  }
+};
+
+// Add or update a specific key in session data
+export const updateSessionDataKey = async (
+  sessionId: string,
+  key: string,
+  value: any
+) => {
+  try {
+    const docRef = doc(db, 'globeSessions', sessionId);
+    
+    // Serialize the specific value
+    const serializedValue = JSON.stringify(value);
+    
+    await updateDoc(docRef, {
+      [`data.${key}`]: serializedValue,
+      updatedAt: serverTimestamp(),
+      lastAccessedAt: serverTimestamp()
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error updating session data key:', error);
+    return { success: false, error: (error as Error).message };
   }
 };
 
@@ -214,10 +305,10 @@ export const addGlobeImage = async (
       timestamp: serverTimestamp()
     };
 
-    const updatedImages = [...sessionData.globeImages, newImage];
+    const updatedImages = [...sessionData.data.globeImages, newImage];
 
     await updateDoc(docRef, {
-      globeImages: updatedImages,
+      'data.globeImages': updatedImages,
       updatedAt: serverTimestamp(),
       lastAccessedAt: serverTimestamp()
     });
@@ -252,10 +343,10 @@ export const addChatMessage = async (
       timestamp: serverTimestamp()
     };
 
-    const updatedChatHistory = [...sessionData.chatHistory, newMessage];
+    const updatedChatHistory = [...sessionData.data.chatHistory, newMessage];
 
     await updateDoc(docRef, {
-      chatHistory: updatedChatHistory,
+      'data.chatHistory': updatedChatHistory,
       updatedAt: serverTimestamp(),
       lastAccessedAt: serverTimestamp()
     });
@@ -382,4 +473,67 @@ export const deleteSessionLinks = async (sessionId: string): Promise<{ success: 
     console.error('Error deleting session links:', error);
     return { success: false, error: (error as Error).message };
   }
+};
+
+// Migration function to convert old structure to new structure
+export const migrateGlobeSessionData = async (sessionId: string) => {
+  try {
+    const docRef = doc(db, 'globeSessions', sessionId);
+    const sessionSnap = await getDoc(docRef);
+
+    if (!sessionSnap.exists()) {
+      return { success: false, error: 'Session not found' };
+    }
+
+    const sessionData = sessionSnap.data();
+    
+    // Check if migration is needed (old structure has globeImages and chatHistory as top-level fields)
+    if (sessionData.globeImages && sessionData.chatHistory && !sessionData.data) {
+      const migratedData: any = {
+        ...sessionData,
+        data: {
+          globeImages: sessionData.globeImages || [],
+          chatHistory: sessionData.chatHistory || []
+        }
+      };
+
+      // Remove old fields
+      delete migratedData.globeImages;
+      delete migratedData.chatHistory;
+
+      await updateDoc(docRef, migratedData);
+      
+      return { success: true, message: 'Session migrated successfully' };
+    }
+
+    return { success: true, message: 'Session already using new structure' };
+  } catch (error) {
+    console.error('Error migrating session data:', error);
+    return { success: false, error: (error as Error).message };
+  }
+};
+
+// Helper function to ensure session has proper data structure
+export const ensureSessionDataStructure = (session: any): GlobeSession => {
+  // If session has old structure, convert it on the fly
+  if (session.globeImages && session.chatHistory && !session.data) {
+    return {
+      ...session,
+      data: {
+        globeImages: session.globeImages || [],
+        chatHistory: session.chatHistory || []
+      }
+    };
+  }
+  
+  // If session doesn't have data field at all, create empty one
+  if (!session.data) {
+    return {
+      ...session,
+      data: {}
+    };
+  }
+  
+  // Return session as-is since data is just a simple object
+  return session;
 };

@@ -6,12 +6,12 @@ import { useGlobeSessions } from '@/hooks/useGlobeSessions';
 import { useSessionLinks } from '@/hooks/useSessionLinks';
 import { Button } from '@/components/ui/button';
 import { Navbar } from '@/components/ui/navbar';
-import { GlobeSession, deleteSessionLinks } from '@/lib/globe-database';
+import { GlobeSessionWithData, deleteSessionLinks } from '@/lib/globe-database';
 import { Plus, Star, Globe, X, Trash2, Settings, Link } from 'lucide-react';
 
 interface ConstellationNode {
   id: string;
-  session: GlobeSession;
+  session: GlobeSessionWithData;
   position: { x: number; y: number };
   isDragging: boolean;
 }
@@ -166,8 +166,8 @@ const ConstellationNode: React.FC<{
             
             {/* Stats */}
             <div className="flex justify-between text-xs text-white/50">
-              <span>{node.session.globeImages.length} images</span>
-              <span>{node.session.chatHistory.length} chats</span>
+              <span>{node.session.data?.globeImages?.length || 0} images</span>
+              <span>{node.session.data?.chatHistory?.length || 0} chats</span>
             </div>
             
             {/* Last accessed */}
@@ -185,8 +185,8 @@ const ConstellationNode: React.FC<{
 });
 
 export default function LearningPage() {
-  const { user, firebaseUserId } = useAuth0Firebase();
-  const { sessions, loading: sessionsLoading, createNewSession: createSession, deleteSession } = useGlobeSessions();
+  const { user, firebaseUserId, isLoading } = useAuth0Firebase();
+  const { sessions, loading: sessionsLoading, createNewSession: createSession, deleteSession, updateSessionData, updateSessionDataKey } = useGlobeSessions();
   const { links, createLink, removeLink, getConnectedSessions, reloadLinks, clearAllLinks } = useSessionLinks();
   
   const [nodes, setNodes] = useState<ConstellationNode[]>([]);
@@ -207,7 +207,7 @@ export default function LearningPage() {
       });
     }
   }, [links, nodes]);
-  const [selectedSession, setSelectedSession] = useState<GlobeSession | null>(null);
+  const [selectedSession, setSelectedSession] = useState<GlobeSessionWithData | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [settingsOpenNodeId, setSettingsOpenNodeId] = useState<string | null>(null);
   const [deleteConfirmation, setDeleteConfirmation] = useState<{
@@ -410,17 +410,93 @@ export default function LearningPage() {
 
   const createSessionWithTitle = async (title: string) => {
     try {
+      console.log('=== CREATE SESSION DEBUG ===');
+      console.log('Creating session with title:', title);
+      console.log('User object:', user);
+      console.log('User authenticated:', !!user);
+      console.log('Firebase user ID:', firebaseUserId);
+      console.log('Create session function:', typeof createSession);
+      
+      if (!firebaseUserId) {
+        console.error('No firebase user ID available');
+        console.log('User loading state:', isLoading);
+        alert('Please make sure you are logged in');
+        return;
+      }
+      
+      console.log('Calling createSession with:', title);
       const sessionId = await createSession(title);
-      console.log('Created new session:', sessionId);
+      console.log('Created new session with ID:', sessionId);
       setShowCreateModal(false);
+      
+      // Trigger a re-render by reloading sessions
+      console.log('Reloading page...');
+      window.location.reload();
     } catch (error) {
       console.error('Failed to create session:', error);
-      // You can add error handling UI here
+      console.error('Error details:', {
+        message: (error as Error).message,
+        stack: (error as Error).stack
+      });
+      alert('Failed to create session: ' + (error as Error).message);
     }
   };
 
   const openCreateModal = () => {
+    console.log('=== OPEN CREATE MODAL DEBUG ===');
+    console.log('openCreateModal called');
+    console.log('Current showCreateModal state:', showCreateModal);
+    console.log('User authenticated:', !!user);
+    console.log('Firebase user ID:', firebaseUserId);
+    console.log('Auth loading state:', isLoading);
     setShowCreateModal(true);
+    console.log('Modal should now be open, new state:', true);
+  };
+
+  // Example functions demonstrating session data communication
+  const saveSessionChatHistory = async (sessionId: string, chatHistory: any[]) => {
+    try {
+      await updateSessionDataKey(sessionId, 'chatHistory', chatHistory);
+      console.log('Chat history saved successfully');
+    } catch (error) {
+      console.error('Failed to save chat history:', error);
+    }
+  };
+
+  const saveSessionGlobeImages = async (sessionId: string, globeImages: any[]) => {
+    try {
+      await updateSessionDataKey(sessionId, 'globeImages', globeImages);
+      console.log('Globe images saved successfully');
+    } catch (error) {
+      console.error('Failed to save globe images:', error);
+    }
+  };
+
+  const saveCompleteSessionData = async (sessionId: string, data: any) => {
+    try {
+      await updateSessionData(sessionId, data);
+      console.log('Complete session data saved successfully');
+    } catch (error) {
+      console.error('Failed to save session data:', error);
+    }
+  };
+
+  // Example: Load session data and use it
+  const loadAndUseSessionData = (session: GlobeSessionWithData) => {
+    // Data is automatically deserialized from strings to objects
+    const chatHistory = session.data.chatHistory || [];
+    const globeImages = session.data.globeImages || [];
+    const customData = session.data.customData || {};
+    
+    console.log('Loaded session data:', {
+      chatHistory,
+      globeImages,
+      customData,
+      sessionId: session.id
+    });
+    
+    // You can now use this data in your session/components
+    return { chatHistory, globeImages, customData };
   };
 
   const handleToggleSettings = (nodeId: string) => {
@@ -588,13 +664,38 @@ export default function LearningPage() {
 
   const handleCreateNewSession = async () => {
     try {
+      console.log('=== HANDLE CREATE NEW SESSION DEBUG ===');
+      console.log('Function called');
+      console.log('User:', user);
+      console.log('Firebase User ID:', firebaseUserId);
+      console.log('Auth loading:', isLoading);
+      console.log('Create session function type:', typeof createSession);
+      
+      if (!firebaseUserId) {
+        console.error('Cannot create session: No firebase user ID');
+        console.log('User object:', user);
+        console.log('Loading state:', isLoading);
+        alert('Please make sure you are logged in');
+        return;
+      }
+      
       // For now, create with a default title. You can replace this with a modal for user input
       const defaultTitle = `Globe Session ${new Date().toLocaleString()}`;
+      console.log('Creating session with title:', defaultTitle);
+      
       const sessionId = await createSession(defaultTitle);
-      console.log('Created new session:', sessionId);
+      console.log('Successfully created new session with ID:', sessionId);
+      console.log('Sessions should refresh automatically via hook');
+      
       // The sessions will be automatically refreshed by the useGlobeSessions hook
     } catch (error) {
       console.error('Failed to create session:', error);
+      console.error('Error details:', {
+        message: (error as Error).message,
+        stack: (error as Error).stack,
+        name: (error as Error).name
+      });
+      alert('Failed to create session: ' + (error as Error).message);
       // You can add error handling UI here
     }
   };
@@ -611,11 +712,21 @@ export default function LearningPage() {
           <div className="text-center">
             <h1 className="text-4xl font-bold mb-4">Please log in to explore</h1>
             <p className="text-white/70">You need to be authenticated to access your constellation.</p>
+            <div className="mt-4 text-sm text-white/50">
+              Debug: User = {user ? 'authenticated' : 'null'}, Loading = {isLoading ? 'true' : 'false'}
+            </div>
           </div>
         </div>
       </div>
     );
   }
+
+  console.log('=== LEARNING PAGE RENDER DEBUG ===');
+  console.log('User:', user);
+  console.log('Firebase User ID:', firebaseUserId);
+  console.log('Sessions count:', sessions.length);
+  console.log('Sessions loading:', sessionsLoading);
+  console.log('Auth loading:', isLoading);
 
   if (sessionsLoading) {
     return (
@@ -809,7 +920,12 @@ export default function LearningPage() {
               setSettingsOpenNodeId(null);
             }}
           >
-            <div className="text-center max-w-md">
+            <div className="text-center max-w-md"
+              onClick={(e) => {
+                // Only handle clicks directly on this div, not on child elements like the button
+                e.stopPropagation();
+              }}
+            >
               <div className="mb-6">
                 <Star className="w-16 h-16 text-white/30 mx-auto mb-4" />
                 <h2 className="text-2xl font-bold text-white mb-2">Your constellation awaits</h2>
@@ -818,8 +934,11 @@ export default function LearningPage() {
                 </p>
               </div>
               <Button 
-                onClick={openCreateModal}
-                className="bg-white/10 backdrop-blur-md border border-white/20 text-white hover:bg-white/20 transition-all duration-300"
+                onClick={(e) => {
+                  e.stopPropagation(); // Prevent the empty state click handler from interfering
+                  openCreateModal();
+                }}
+                className="bg-white/10 backdrop-blur-md border border-white/20 text-white hover:bg-white/20 transition-all duration-300 relative z-10 pointer-events-auto"
                 size="lg"
               >
                 <Plus className="w-5 h-5 mr-2" />
@@ -1237,7 +1356,7 @@ export default function LearningPage() {
   );
 }
 
-function SessionCard({ session, onSelect }: { session: GlobeSession; onSelect: () => void }) {
+function SessionCard({ session, onSelect }: { session: GlobeSessionWithData; onSelect: () => void }) {
   return (
     <div 
       onClick={onSelect}
@@ -1256,10 +1375,10 @@ function SessionCard({ session, onSelect }: { session: GlobeSession; onSelect: (
 
       <div className="space-y-3 mb-4">
         <div className="flex items-center text-white/70 text-sm">
-          <span>📍 {session.globeImages.length} locations explored</span>
+          <span>📍 {session.data?.globeImages?.length || 0} locations explored</span>
         </div>
         <div className="flex items-center text-white/70 text-sm">
-          <span>💬 {session.chatHistory.length} AI conversations</span>
+          <span>💬 {session.data?.chatHistory?.length || 0} AI conversations</span>
         </div>
         <div className="flex items-center text-white/70 text-sm">
           <span>🕒 Last accessed: {session.lastAccessedAt.toLocaleDateString()}</span>
@@ -1267,12 +1386,12 @@ function SessionCard({ session, onSelect }: { session: GlobeSession; onSelect: (
       </div>
 
       {/* Preview of latest globe image */}
-      {session.globeImages.length > 0 && (
+      {session.data?.globeImages?.length > 0 && (
         <div className="mb-4">
           <div className="w-full h-32 bg-gray-800 rounded-lg flex items-center justify-center text-white/50">
             Globe View Preview
             <br />
-            <span className="text-xs">{session.globeImages[session.globeImages.length - 1].locationName}</span>
+            <span className="text-xs">{session.data?.globeImages?.[session.data.globeImages.length - 1]?.locationName}</span>
           </div>
         </div>
       )}
@@ -1290,7 +1409,7 @@ function SessionCard({ session, onSelect }: { session: GlobeSession; onSelect: (
   );
 }
 
-function SessionDetailModal({ session, onClose }: { session: GlobeSession; onClose: () => void }) {
+function SessionDetailModal({ session, onClose }: { session: GlobeSessionWithData; onClose: () => void }) {
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div className="bg-white/10 backdrop-blur-md rounded-lg border border-white/20 w-full max-w-4xl max-h-[90vh] overflow-hidden">
@@ -1310,7 +1429,7 @@ function SessionDetailModal({ session, onClose }: { session: GlobeSession; onClo
           <div className="p-6 border-r border-white/20 overflow-y-auto">
             <h3 className="text-lg font-semibold text-white mb-4">Globe Exploration</h3>
             <div className="space-y-4">
-              {session.globeImages.map((image) => (
+              {session.data?.globeImages?.map((image: any) => (
                 <div key={image.id} className="bg-white/5 rounded-lg p-4 border border-white/10">
                   <div className="w-full h-40 bg-gray-800 rounded-lg mb-3 flex items-center justify-center text-white/50">
                     Globe Screenshot
@@ -1335,7 +1454,7 @@ function SessionDetailModal({ session, onClose }: { session: GlobeSession; onClo
           <div className="p-6 overflow-y-auto">
             <h3 className="text-lg font-semibold text-white mb-4">AI Conversation</h3>
             <div className="space-y-3">
-              {session.chatHistory.map((chat) => (
+              {session.data?.chatHistory?.map((chat: any) => (
                 <div key={chat.id} className={`p-3 rounded-lg ${
                   chat.role === 'user' 
                     ? 'bg-blue-500/20 ml-8 text-blue-100' 
@@ -1367,6 +1486,9 @@ function CreateSessionModal({
 }) {
   const [title, setTitle] = useState('');
   const [isCreating, setIsCreating] = useState(false);
+
+  console.log('=== CREATE SESSION MODAL RENDERED ===');
+  console.log('Modal props:', { onClose: typeof onClose, onCreateSession: typeof onCreateSession });
 
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
