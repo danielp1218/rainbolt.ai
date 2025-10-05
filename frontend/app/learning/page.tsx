@@ -9,6 +9,8 @@ import { Button } from '@/components/ui/Button';
 import { Navbar } from '@/components/ui/Navbar';
 import StarryNightBackground from '@/components/ui/starry-night-background';
 import { GlobeSessionWithData, deleteSessionLinks } from '@/lib/globe-database';
+import { UploadModal } from '@/components/UploadModal';
+
 import { Plus, Star, Globe, X, Trash2, Settings, Link } from 'lucide-react';
 
 interface ConstellationNode {
