@@ -9,6 +9,7 @@ from typing import List, Dict, Optional
 import json
 import asyncio
 import logging
+from urllib.parse import unquote
 from pineconedb import query_pinecone_with_image
 from reasoning import think, estimate_coordinates
 from mapillary import get_mapillary_images
@@ -171,8 +172,13 @@ async def websocket_chat(websocket: WebSocket, session_id: str):
                 
                 print(f"Received chat message: {user_message}")
                 
+                # URL-decode the session ID to handle special characters
+                decoded_session_id = unquote(chat_session_id)
+                logger.info(f"Original session_id: {chat_session_id}")
+                logger.info(f"Decoded session_id: {decoded_session_id}")
+                
                 # Construct the expected file path directly
-                expected_file_path = UPLOAD_DIR / f"{chat_session_id}.jpg"
+                expected_file_path = UPLOAD_DIR / f"{decoded_session_id}.jpg"
                 logger.info(f"Looking for image file: {expected_file_path}")
                 logger.info(f"File exists check: {expected_file_path.exists()}")
                 
@@ -267,7 +273,12 @@ async def websocket_chat(websocket: WebSocket, session_id: str):
             
             # Check if this is an image processing request
             if message_type == "process_image":
-                file_path = UPLOAD_DIR / f"{message_data.get('session_id')}.jpg"
+                # URL-decode the session ID to handle special characters
+                process_session_id = unquote(message_data.get('session_id'))
+                logger.info(f"Original session_id: {message_data.get('session_id')}")
+                logger.info(f"Decoded session_id: {process_session_id}")
+                
+                file_path = UPLOAD_DIR / f"{process_session_id}.jpg"
                 logger.info(f"Processing image request for: {file_path}")
                 logger.info(f"File exists: {file_path.exists()}")
                 logger.info(f"UPLOAD_DIR contents: {list(UPLOAD_DIR.iterdir())}")
