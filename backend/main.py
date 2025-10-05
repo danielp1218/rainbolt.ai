@@ -289,7 +289,7 @@ async def websocket_chat(websocket: WebSocket, session_id: str):
                     logger.error(f"Available files in {UPLOAD_DIR}: {list(UPLOAD_DIR.iterdir())}")
                     await manager.send_message(session_id, {
                         "type": "error",
-                        "message": "Image file not found"
+                        "message": error_msg
                     })
                     continue
                 
