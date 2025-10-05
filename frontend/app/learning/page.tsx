@@ -3,9 +3,10 @@
 import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { useAuth0Firebase } from '@/hooks/useAuth0Firebase';
 import { useGlobeSessions } from '@/hooks/useGlobeSessions';
+import { useSessionLinks } from '@/hooks/useSessionLinks';
 import { Button } from '@/components/ui/button';
 import { Navbar } from '@/components/ui/navbar';
-import { GlobeSession } from '@/lib/globe-database';
+import { GlobeSession, deleteSessionLinks } from '@/lib/globe-database';
 import { Plus, Star, Globe, X, Trash2, Settings, Link } from 'lucide-react';
 
 interface ConstellationNode {
@@ -176,7 +177,26 @@ const ConstellationNode: React.FC<{
 export default function LearningPage() {
   const { user, firebaseUserId } = useAuth0Firebase();
   const { sessions, loading: sessionsLoading, createNewSession: createSession, deleteSession } = useGlobeSessions();
+  const { links, createLink, getConnectedSessions, reloadLinks, clearAllLinks } = useSessionLinks();
+  
   const [nodes, setNodes] = useState<ConstellationNode[]>([]);
+  
+  // Debug: Log links whenever they change
+  useEffect(() => {
+    console.log('Current links:', links);
+    console.log('Links count:', links.length);
+    if (links.length > 0) {
+      links.forEach(link => {
+        console.log('Link details:', {
+          id: link.id,
+          from: link.fromSessionId,
+          to: link.toSessionId,
+          hasFromNode: !!nodes.find(n => n.id === link.fromSessionId),
+          hasToNode: !!nodes.find(n => n.id === link.toSessionId)
+        });
+      });
+    }
+  }, [links, nodes]);
   const [selectedSession, setSelectedSession] = useState<GlobeSession | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [settingsOpenNodeId, setSettingsOpenNodeId] = useState<string | null>(null);
@@ -261,11 +281,20 @@ export default function LearningPage() {
         },
         isDragging: false,
       }));
+      console.log('Creating nodes from sessions:', sessions.map(s => s.id));
+      console.log('Node IDs:', initialNodes.map(n => n.id));
       setNodes(initialNodes);
+      
+      // Reload links after nodes are created to ensure proper rendering
+      setTimeout(() => {
+        console.log('Reloading links after nodes creation...');
+        reloadLinks();
+      }, 100);
     } else {
+      console.log('No sessions found, clearing nodes');
       setNodes([]);
     }
-  }, [sessions]);
+  }, [sessions]); // Removed reloadLinks dependency to prevent infinite loop
 
   // Drag handlers - optimized for performance
   const handleMouseDown = (e: React.MouseEvent, nodeId: string) => {
@@ -321,6 +350,13 @@ export default function LearningPage() {
       nodeElement.style.top = `${constrainedY}px`;
       nodeElement.style.transform = 'scale(1.02)';
     }
+
+    // Also update the nodes state immediately for real-time link updates
+    setNodes(prev => prev.map(n => 
+      n.id === draggingNodeId 
+        ? { ...n, position: { x: constrainedX, y: constrainedY } }
+        : n
+    ));
   };
 
   const handleMouseUp = () => {
@@ -384,11 +420,30 @@ export default function LearningPage() {
     setSettingsOpenNodeId(null); // Close settings when starting to link
   };
 
-  const handleCompleteLink = (targetSessionId: string) => {
+  const handleCompleteLink = async (targetSessionId: string) => {
     if (!isLinking || !linkingFromNodeId || linkingFromNodeId === targetSessionId) return;
     
-    // Here you could add logic to actually create a connection between sessions
-    console.log(`Creating link from ${linkingFromNodeId} to ${targetSessionId}`);
+    console.log('Attempting to create link:', { from: linkingFromNodeId, to: targetSessionId });
+    
+    try {
+      // Create the link in the database (without description)
+      const result = await createLink(linkingFromNodeId, targetSessionId, 'related');
+      
+      console.log('Link creation result:', result);
+      
+      if (result.success) {
+        console.log(`Successfully created link from ${linkingFromNodeId} to ${targetSessionId}`);
+        // TODO: Show success toast
+      } else {
+        console.error('Failed to create link:', result.error);
+        if (result.error?.includes('already exists')) {
+          console.log('Link already exists - this is normal');
+          // TODO: Show info toast that link already exists
+        }
+      }
+    } catch (error) {
+      console.error('Error creating link:', error);
+    }
     
     // Reset linking mode
     setIsLinking(false);
@@ -415,7 +470,12 @@ export default function LearningPage() {
 
   const confirmDeleteSession = async () => {
     try {
-      await deleteSession(deleteConfirmation.sessionId);
+      // Delete the session and its associated links
+      await Promise.all([
+        deleteSession(deleteConfirmation.sessionId),
+        deleteSessionLinks(deleteConfirmation.sessionId)
+      ]);
+      
       // Remove from nodes state
       setNodes(prev => prev.filter(node => node.id !== deleteConfirmation.sessionId));
       // Close settings if this node had settings open
@@ -581,6 +641,53 @@ export default function LearningPage() {
           New Session
         </Button>
 
+        {/* Debug: Show links info */}
+        {links.length > 0 && (
+          <div className="absolute top-4 right-4 bg-blue-900/80 text-white p-3 rounded text-xs z-30">
+            <div>Links: {links.length}</div>
+            {links.map(link => (
+              <div key={link.id} className="mt-1">
+                {link.fromSessionId.slice(-6)} → {link.toSessionId.slice(-6)}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Debug: Force reload links button */}
+        <Button 
+          onClick={() => {
+            console.log('Force reloading links...');
+            reloadLinks();
+          }}
+          className="absolute top-48 right-8 z-20 bg-red-500/80 text-white hover:bg-red-600/80 text-xs"
+          size="sm"
+        >
+          Reload Links
+        </Button>
+
+        {/* Debug: Clear all links button */}
+        <Button 
+          onClick={async () => {
+            console.log('Clearing all links...');
+            const result = await clearAllLinks();
+            console.log('Clear result:', result);
+          }}
+          className="absolute top-64 right-8 z-20 bg-orange-500/80 text-white hover:bg-orange-600/80 text-xs"
+          size="sm"
+        >
+          Clear Links
+        </Button>
+
+        {/* Debug: Link count display */}
+        <div className="absolute top-80 right-8 z-20 bg-black/60 text-white p-2 rounded text-xs">
+          Links: {links.length} | Nodes: {nodes.length}
+          <br />
+          Should Render: {links.filter(link => 
+            nodes.find(n => n.id === link.fromSessionId) && 
+            nodes.find(n => n.id === link.toSessionId)
+          ).length}
+        </div>
+
         {/* Constellation Nodes */}
         {nodes.map((node) => (
           <ConstellationNode
@@ -639,32 +746,107 @@ export default function LearningPage() {
           </div>
         )}
 
-        {/* Connection Lines between nodes */}
-        <svg className="absolute inset-0 pointer-events-none" style={{ zIndex: 1 }}>
-          {nodes.map((node, index) => 
-            nodes.slice(index + 1).map((otherNode) => {
-              const distance = Math.sqrt(
-                Math.pow(node.position.x - otherNode.position.x, 2) + 
-                Math.pow(node.position.y - otherNode.position.y, 2)
-              );
-              // Only draw lines between nearby nodes
-              if (distance < 300) {
-                return (
-                  <line
-                    key={`${node.id}-${otherNode.id}`}
-                    x1={node.position.x + 100} // Center of node
-                    y1={node.position.y + 50}
-                    x2={otherNode.position.x + 100}
-                    y2={otherNode.position.y + 50}
-                    stroke="rgba(255, 255, 255, 0.1)"
-                    strokeWidth="1"
-                    strokeDasharray="2,4"
-                  />
-                );
-              }
+        {/* Connection Lines between linked nodes */}
+        <svg 
+          className="absolute inset-0 pointer-events-none" 
+          style={{ 
+            zIndex: 1, 
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%'
+          }}
+        >
+          <defs>
+            <filter id="linkGlow" x="-50%" y="-50%" width="200%" height="200%">
+              <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
+              <feMerge> 
+                <feMergeNode in="coloredBlur"/>
+                <feMergeNode in="SourceGraphic"/>
+              </feMerge>
+            </filter>
+          </defs>
+          
+          {(() => {
+            console.log('=== SVG RENDERING DEBUG ===');
+            console.log('Total links to render:', links.length);
+            console.log('Total nodes available:', nodes.length);
+            console.log('Node IDs:', nodes.map(n => n.id));
+            console.log('Link session IDs:', links.map(l => ({ from: l.fromSessionId, to: l.toSessionId })));
+            
+            // Test if we have any links that should render
+            const renderableLinks = links.filter(link => {
+              const fromNode = nodes.find(n => n.id === link.fromSessionId);
+              const toNode = nodes.find(n => n.id === link.toSessionId);
+              return fromNode && toNode;
+            });
+            console.log('Renderable links count:', renderableLinks.length);
+            console.log('Renderable links:', renderableLinks);
+            
+            return null;
+          })()}
+          {links.map((link) => {
+            console.log('Processing link:', link.id);
+            const fromNode = nodes.find(n => n.id === link.fromSessionId);
+            const toNode = nodes.find(n => n.id === link.toSessionId);
+            
+            console.log('Node lookup result:', { 
+              linkId: link.id,
+              fromSessionId: link.fromSessionId, 
+              toSessionId: link.toSessionId,
+              fromNodeFound: !!fromNode, 
+              toNodeFound: !!toNode,
+              fromNodeId: fromNode?.id,
+              toNodeId: toNode?.id
+            });
+            
+            if (!fromNode || !toNode) {
+              console.log('❌ SKIPPING LINK - Missing node(s):', { 
+                linkId: link.id,
+                missingFrom: !fromNode, 
+                missingTo: !toNode,
+                availableNodeIds: nodes.map(n => n.id)
+              });
               return null;
-            })
-          )}
+            }
+            
+            console.log('✅ RENDERING LINK:', link.id);
+            
+            return (
+              <g key={link.id}>
+                {/* Glow effect layer - wider, softer */}
+                <line
+                  x1={fromNode.position.x + 100}
+                  y1={fromNode.position.y + 100}
+                  x2={toNode.position.x + 100}
+                  y2={toNode.position.y + 100}
+                  stroke="rgba(255, 255, 255, 0.3)"
+                  strokeWidth="8"
+                  filter="url(#linkGlow)"
+                />
+                {/* Main solid white line */}
+                <line
+                  x1={fromNode.position.x + 100} // Center of node
+                  y1={fromNode.position.y + 100}
+                  x2={toNode.position.x + 100}
+                  y2={toNode.position.y + 100}
+                  stroke="rgba(255, 255, 255, 0.9)"
+                  strokeWidth="3"
+                  filter="url(#linkGlow)"
+                />
+                {/* Connection indicator - pulsing dot at midpoint */}
+                <circle
+                  cx={fromNode.position.x + (toNode.position.x - fromNode.position.x) * 0.5 + 100}
+                  cy={fromNode.position.y + (toNode.position.y - fromNode.position.y) * 0.5 + 100}
+                  r="4"
+                  fill="rgba(255, 255, 255, 0.8)"
+                  filter="url(#linkGlow)"
+                  className="animate-pulse"
+                />
+              </g>
+            );
+          })}
         </svg>
       </div>
 

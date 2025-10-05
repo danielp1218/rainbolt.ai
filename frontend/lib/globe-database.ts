@@ -266,3 +266,120 @@ export const addChatMessage = async (
     return { success: false, error: (error as Error).message };
   }
 };
+
+// Session Link Interface
+export interface SessionLink {
+  id: string;
+  userId: string;
+  fromSessionId: string;
+  toSessionId: string;
+  createdAt: any;
+  updatedAt: any;
+  linkType?: 'related' | 'sequential' | 'reference'; // Optional categorization
+  description?: string; // Optional description of the relationship
+}
+
+// Create a link between two sessions
+export const createSessionLink = async (
+  userId: string,
+  fromSessionId: string,
+  toSessionId: string,
+  linkType: 'related' | 'sequential' | 'reference' = 'related',
+  description?: string
+): Promise<{ success: boolean; linkId?: string; error?: string }> => {
+  try {
+    const linkId = `link_${fromSessionId}_${toSessionId}_${Date.now()}`;
+    const linkRef = doc(db, 'sessionLinks', linkId);
+
+    const linkData: Partial<SessionLink> = {
+      id: linkId,
+      userId,
+      fromSessionId,
+      toSessionId,
+      linkType,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    };
+
+    // Only add description if it's provided and not undefined
+    if (description !== undefined && description !== null && description.trim() !== '') {
+      linkData.description = description;
+    }
+
+    await setDoc(linkRef, linkData);
+    return { success: true, linkId };
+  } catch (error) {
+    console.error('Error creating session link:', error);
+    return { success: false, error: (error as Error).message };
+  }
+};
+
+// Get all links for a user
+export const getUserSessionLinks = async (userId: string): Promise<SessionLink[]> => {
+  try {
+    console.log('getUserSessionLinks called with userId:', userId);
+    const linksQuery = query(
+      collection(db, 'sessionLinks'),
+      where('userId', '==', userId)
+    );
+    
+    console.log('Executing Firestore query...');
+    const linksSnapshot = await getDocs(linksQuery);
+    console.log('Firestore query result:', linksSnapshot.size, 'documents');
+    
+    const links = linksSnapshot.docs.map(doc => {
+      const data = doc.data() as SessionLink;
+      console.log('Link document:', doc.id, data);
+      return data;
+    });
+    
+    console.log('Returning links:', links);
+    return links;
+  } catch (error) {
+    console.error('Error fetching user session links:', error);
+    return [];
+  }
+};
+
+// Delete a session link
+export const deleteSessionLink = async (linkId: string): Promise<{ success: boolean; error?: string }> => {
+  try {
+    await deleteDoc(doc(db, 'sessionLinks', linkId));
+    return { success: true };
+  } catch (error) {
+    console.error('Error deleting session link:', error);
+    return { success: false, error: (error as Error).message };
+  }
+};
+
+// Delete all links related to a session (called when deleting a session)
+export const deleteSessionLinks = async (sessionId: string): Promise<{ success: boolean; error?: string }> => {
+  try {
+    // Find all links that involve this session
+    const fromLinksQuery = query(
+      collection(db, 'sessionLinks'),
+      where('fromSessionId', '==', sessionId)
+    );
+    const toLinksQuery = query(
+      collection(db, 'sessionLinks'),
+      where('toSessionId', '==', sessionId)
+    );
+
+    const [fromSnapshot, toSnapshot] = await Promise.all([
+      getDocs(fromLinksQuery),
+      getDocs(toLinksQuery)
+    ]);
+
+    // Delete all found links
+    const deletePromises = [
+      ...fromSnapshot.docs.map(doc => deleteDoc(doc.ref)),
+      ...toSnapshot.docs.map(doc => deleteDoc(doc.ref))
+    ];
+
+    await Promise.all(deletePromises);
+    return { success: true };
+  } catch (error) {
+    console.error('Error deleting session links:', error);
+    return { success: false, error: (error as Error).message };
+  }
+};
