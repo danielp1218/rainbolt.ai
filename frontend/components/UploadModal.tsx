@@ -22,9 +22,10 @@ interface UploadResult {
 interface UploadModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onCreateSession: (title: string) => Promise<void>;
 }
 
-export const UploadModal: React.FC<UploadModalProps> = ({ isOpen, onClose }) => {
+export const UploadModal: React.FC<UploadModalProps> = ({ isOpen, onClose, onCreateSession }) => {
   const router = useRouter();
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -90,6 +91,10 @@ export const UploadModal: React.FC<UploadModalProps> = ({ isOpen, onClose }) => 
     setError(null);
 
     try {
+      // --- Call external session creation first ---
+      await onCreateSession(title.trim());
+
+      // --- Upload file to API ---
       const formData = new FormData();
       formData.append('file', file);
       formData.append('title', title);
@@ -98,24 +103,15 @@ export const UploadModal: React.FC<UploadModalProps> = ({ isOpen, onClose }) => 
         method: 'POST',
         body: formData,
       });
-
       const data = await response.json();
 
-      if (!response.ok) {
-        throw new Error(data.error || 'Upload failed');
-      }
+      if (!response.ok) throw new Error(data.error || 'Upload failed');
 
-      // Clear previous session and store the upload info
       const store = useChatStore.getState();
       store.clear();
-      
-      // Store image directly in zustand
-      if (preview) {
-        useChatStore.setState({ uploadedImageUrl: preview });
-      }
-      
-      // Close modal and redirect to chat
-      onClose();
+      if (preview) useChatStore.setState({ uploadedImageUrl: preview });
+
+      handleClose();
       router.push(`/chat/${data.session_id}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Upload failed');
