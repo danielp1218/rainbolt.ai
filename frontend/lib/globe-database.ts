@@ -15,7 +15,6 @@ import { db } from './firebase';
 // Serialization helpers for session data
 export const serializeSessionData = (data: any): Record<string, string> => {
   const serialized: Record<string, string> = {};
-  
   for (const [key, value] of Object.entries(data)) {
     if (value !== null && value !== undefined) {
       serialized[key] = JSON.stringify(value);
