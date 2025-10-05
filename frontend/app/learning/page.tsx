@@ -31,7 +31,7 @@ const ConstellationNode: React.FC<{
   isLinking: boolean;
   isLinkingFrom: boolean;
   isHovered?: boolean;
-}> = ({ node, onMouseDown, onMouseEnter, onMouseLeave, onClick, onDelete, onCreateLink, isSettingsOpen, onToggleSettings, linkCopied, isLinking, isLinkingFrom, isHovered }) => {
+}> = React.memo(({ node, onMouseDown, onMouseEnter, onMouseLeave, onClick, onDelete, onCreateLink, isSettingsOpen, onToggleSettings, linkCopied, isLinking, isLinkingFrom, isHovered }) => {
   return (
     <div
       data-node-id={node.id}
@@ -43,6 +43,7 @@ const ConstellationNode: React.FC<{
         top: node.position.y,
         transform: node.isDragging ? 'scale(1.02)' : 'scale(1)',
         transition: node.isDragging ? 'none' : 'transform 0.1s ease-out',
+        willChange: node.isDragging ? 'transform' : 'auto',
       }}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
@@ -181,7 +182,7 @@ const ConstellationNode: React.FC<{
       </div>
     </div>
   );
-};
+});
 
 export default function LearningPage() {
   const { user, firebaseUserId } = useAuth0Firebase();
@@ -329,6 +330,7 @@ export default function LearningPage() {
     const node = nodesRef.current.find(n => n.id === nodeId);
     if (!node) return;
 
+    // Store the offset from mouse to node's top-left corner
     setDragOffset({
       x: e.clientX - rect.left - node.position.x,
       y: e.clientY - rect.top - node.position.y,
@@ -341,6 +343,9 @@ export default function LearningPage() {
       n.id === nodeId ? { ...n, isDragging: true } : n
     ));
   };
+
+  // Throttle mouse move events for better performance
+  const throttleRef = useRef<NodeJS.Timeout | null>(null);
 
   const handleMouseMove = (e: React.MouseEvent) => {
     const rect = canvasRef.current?.getBoundingClientRect();
@@ -358,13 +363,14 @@ export default function LearningPage() {
     // Handle dragging if there's a dragging node
     if (!draggingNodeId) return;
 
+    // Calculate new position: current mouse position minus the stored offset
     const newX = e.clientX - rect.left - dragOffset.x;
     const newY = e.clientY - rect.top - dragOffset.y;
 
     const constrainedX = Math.max(0, Math.min(newX, rect.width - 200));
     const constrainedY = Math.max(0, Math.min(newY, rect.height - 200));
 
-    // Direct DOM manipulation for smooth dragging
+    // Direct DOM manipulation for immediate response
     const nodeElement = document.querySelector(`[data-node-id="${draggingNodeId}"]`) as HTMLElement;
     if (nodeElement) {
       nodeElement.style.left = `${constrainedX}px`;
@@ -372,7 +378,7 @@ export default function LearningPage() {
       nodeElement.style.transform = 'scale(1.02)';
     }
 
-    // Also update the nodes state immediately for real-time link updates
+    // Update state immediately for link updates (no throttling)
     setNodes(prev => prev.map(n => 
       n.id === draggingNodeId 
         ? { ...n, position: { x: constrainedX, y: constrainedY } }
@@ -388,6 +394,9 @@ export default function LearningPage() {
     if (nodeElement) {
       const finalX = parseFloat(nodeElement.style.left) || 0;
       const finalY = parseFloat(nodeElement.style.top) || 0;
+      
+      // Reset transform to normal
+      nodeElement.style.transform = 'scale(1)';
       
       setNodes(prev => prev.map(n => 
         n.id === draggingNodeId 
