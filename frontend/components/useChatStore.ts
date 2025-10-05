@@ -13,6 +13,7 @@ export type Marker = {
     longitude: number;
     accuracy: number;
     facts: string;
+    mapillary_images?: string[];
 };
 
 type ChatState = {

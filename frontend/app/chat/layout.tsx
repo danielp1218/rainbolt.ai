@@ -14,7 +14,7 @@ export default function ChatLayout({
   return (
     <div className="flex h-screen">
       {/* Slim Sidebar */}
-      <aside className="fixed z-[9999] h-full w-16 bg-zinc-900 border-r border-zinc-800 flex flex-col items-center py-4 gap-4">
+      <aside className="z-[9999] h-full w-16 bg-zinc-900 border-r border-zinc-800 flex flex-col items-center py-4 gap-4">
         {/* Home Icon */}
         <Link 
           href="/"

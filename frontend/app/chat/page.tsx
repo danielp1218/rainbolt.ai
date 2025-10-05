@@ -19,6 +19,8 @@ export default function ChatPage() {
     const nextMarker = useChatStore((state) => state.nextMarker);
     const previousMarker = useChatStore((state) => state.previousMarker);
     const [isLocked, setIsLocked] = useState(true);
+    const [mapillaryImages, setMapillaryImages] = useState<Record<number, string[]>>({});
+    const [loadingImages, setLoadingImages] = useState<Record<number, boolean>>({});
 
     // Connect WebSocket when page mounts with session info
     useEffect(() => {
@@ -66,6 +68,70 @@ export default function ChatPage() {
         console.log('Markers updated:', markers);
     }, [markers]);
 
+    // Fetch Mapillary images when current marker changes
+    useEffect(() => {
+        const fetchMapillaryImages = async () => {
+            if (markers.length === 0 || currentMarker >= markers.length) return;
+            
+            const marker = markers[currentMarker];
+            
+            // Skip if we already have images for this marker or if it already has images from backend
+            if (mapillaryImages[currentMarker] || marker.mapillary_images) {
+                if (marker.mapillary_images) {
+                    setMapillaryImages(prev => ({
+                        ...prev,
+                        [currentMarker]: marker.mapillary_images || []
+                    }));
+                }
+                return;
+            }
+            
+            // Skip if already loading
+            if (loadingImages[currentMarker]) return;
+            
+            setLoadingImages(prev => ({ ...prev, [currentMarker]: true }));
+            
+            try {
+                const response = await fetch('http://localhost:8000/api/mapillary-images', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        latitude: marker.latitude,
+                        longitude: marker.longitude,
+                        radius: 0.003,
+                        limit: 5
+                    })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    setMapillaryImages(prev => ({
+                        ...prev,
+                        [currentMarker]: data.images || []
+                    }));
+                } else {
+                    console.error('Failed to fetch Mapillary images:', response.statusText);
+                    setMapillaryImages(prev => ({
+                        ...prev,
+                        [currentMarker]: []
+                    }));
+                }
+            } catch (error) {
+                console.error('Error fetching Mapillary images:', error);
+                setMapillaryImages(prev => ({
+                    ...prev,
+                    [currentMarker]: []
+                }));
+            } finally {
+                setLoadingImages(prev => ({ ...prev, [currentMarker]: false }));
+            }
+        };
+        
+        fetchMapillaryImages();
+    }, [currentMarker, markers]);
+
     // Convert all markers to SimpleGlobe format
     const globeMarkers = markers.map(m => ({
         lat: m.latitude,
@@ -105,82 +171,101 @@ export default function ChatPage() {
 
                 {/* Location Facts Popup - Left Side */}
                 {isLocked && currentMarkerData && (
-                    <div className="absolute left-8 top-1/2 transform -translate-y-1/2 w-80 bg-black/90 backdrop-blur-md rounded-lg border border-white/20 p-6 shadow-2xl z-10 pointer-events-auto">
-                        <div className="flex items-start gap-3 mb-4">
-                            <div className="flex-shrink-0">
-                                <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center">
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
-                                        <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
-                                    </svg>
+                    <div className="absolute left-8 top-1/2 transform -translate-y-1/2 w-80 bg-black/90 backdrop-blur-md rounded-lg border border-white/20 shadow-2xl z-10 pointer-events-auto max-h-[80vh] flex flex-col">
+                        <div className="flex-shrink-0 p-6 pb-4">
+                            <div className="flex items-start gap-3 mb-4">
+                                <div className="flex-shrink-0">
+                                    <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center">
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
+                                        </svg>
+                                    </div>
+                                </div>
+                                <div className="flex-1">
+                                    <h3 className="text-white font-semibold text-lg mb-1">Location {currentMarker + 1}</h3>
+                                    <div className="flex items-center gap-2 text-white/60 text-xs">
+                                        <span>{currentMarkerData.latitude.toFixed(4)}°N</span>
+                                        <span>•</span>
+                                        <span>{currentMarkerData.longitude.toFixed(4)}°E</span>
+                                    </div>
                                 </div>
                             </div>
-                            <div className="flex-1">
-                                <h3 className="text-white font-semibold text-lg mb-1">Location {currentMarker + 1}</h3>
-                                <div className="flex items-center gap-2 text-white/60 text-xs">
-                                    <span>{currentMarkerData.latitude.toFixed(4)}°N</span>
-                                    <span>•</span>
-                                    <span>{currentMarkerData.longitude.toFixed(4)}°E</span>
+
+                            <div className="space-y-3">
+                                <div>
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <span className="text-white/50 text-xs uppercase tracking-wider">Accuracy</span>
+                                        <div className="flex-1 h-px bg-white/10"></div>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <div className="flex-1 h-2 bg-white/10 rounded-full overflow-hidden">
+                                            <div
+                                                className="h-full bg-gradient-to-r from-blue-500 to-green-500 rounded-full transition-all duration-500"
+                                                style={{ width: `${currentMarkerData.accuracy * 100}%` }}
+                                            ></div>
+                                        </div>
+                                        <span className="text-white font-medium text-sm">{(currentMarkerData.accuracy * 100).toFixed(0)}%</span>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <span className="text-white/50 text-xs uppercase tracking-wider">Analysis</span>
+                                        <div className="flex-1 h-px bg-white/10"></div>
+                                    </div>
+                                    <p className="text-white/80 text-sm leading-relaxed">
+                                        {currentMarkerData.facts}
+                                    </p>
                                 </div>
                             </div>
                         </div>
 
-                        <div className="space-y-3">
-                            <div>
-                                <div className="flex items-center gap-2 mb-2">
-                                    <span className="text-white/50 text-xs uppercase tracking-wider">Accuracy</span>
+                        {/* Scrollable Mapillary Images Section */}
+                        <div className="flex-1 overflow-hidden border-t border-white/10">
+                            <div className="p-4">
+                                <div className="flex items-center gap-2 mb-3">
+                                    <span className="text-white/50 text-xs uppercase tracking-wider">Street View Images</span>
                                     <div className="flex-1 h-px bg-white/10"></div>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <div className="flex-1 h-2 bg-white/10 rounded-full overflow-hidden">
-                                        <div
-                                            className="h-full bg-gradient-to-r from-blue-500 to-green-500 rounded-full transition-all duration-500"
-                                            style={{ width: `${currentMarkerData.accuracy * 100}%` }}
-                                        ></div>
-                                    </div>
-                                    <span className="text-white font-medium text-sm">{(currentMarkerData.accuracy * 100).toFixed(0)}%</span>
+                                    {loadingImages[currentMarker] && (
+                                        <div className="animate-spin h-3 w-3 border-2 border-blue-400 border-t-transparent rounded-full"></div>
+                                    )}
                                 </div>
                             </div>
-
-                            <div>
-                                <div className="flex items-center gap-2 mb-2">
-                                    <span className="text-white/50 text-xs uppercase tracking-wider">Analysis</span>
-                                    <div className="flex-1 h-px bg-white/10"></div>
-                                </div>
-                                <p className="text-white/80 text-sm leading-relaxed">
-                                    {currentMarkerData.facts}
-                                </p>
+                            <div className="overflow-y-auto px-4 pb-4 space-y-3" style={{ maxHeight: 'calc(80vh - 320px)' }}>
+                                {loadingImages[currentMarker] ? (
+                                    <div className="text-white/50 text-sm text-center py-8">
+                                        Loading street view images...
+                                    </div>
+                                ) : mapillaryImages[currentMarker] && mapillaryImages[currentMarker].length > 0 ? (
+                                    mapillaryImages[currentMarker].map((imageUrl, index) => (
+                                        <div key={index} className="relative rounded-lg overflow-hidden bg-black/50 border border-white/10 hover:border-blue-400/50 transition-all group">
+                                            <img
+                                                src={imageUrl}
+                                                alt={`Street view ${index + 1}`}
+                                                className="w-full h-40 object-cover"
+                                                onError={(e) => {
+                                                    // Hide broken images
+                                                    e.currentTarget.parentElement!.style.display = 'none';
+                                                }}
+                                            />
+                                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-3">
+                                                <span className="text-white text-xs">Image {index + 1}</span>
+                                            </div>
+                                        </div>
+                                    ))
+                                ) : (
+                                    <div className="text-white/50 text-sm text-center py-8">
+                                        No street view images available for this location
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>
                 )}
 
-                {/* Lock/Unlock Toggle Button */}
-                <div className="absolute top-8 left-8 z-10">
-                    <button
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            setIsLocked(!isLocked);
-                        }}
-                        onMouseDown={(e) => e.stopPropagation()}
-                        className="bg-black/80 backdrop-blur-sm rounded-full p-3 border border-white/20 text-white hover:bg-white/10 transition-colors"
-                        aria-label={isLocked ? "Unlock globe" : "Lock globe"}
-                        title={isLocked ? "Unlock for free rotation" : "Lock to marker"}
-                    >
-                        {isLocked ? (
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
-                            </svg>
-                        ) : (
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                <path d="M10 2a5 5 0 00-5 5v2a2 2 0 00-2 2v5a2 2 0 002 2h10a2 2 0 002-2v-5a2 2 0 00-2-2H7V7a3 3 0 015.905-.75 1 1 0 001.937-.5A5.002 5.002 0 0010 2z" />
-                            </svg>
-                        )}
-                    </button>
-                </div>
-
                 {/* Marker Navigation Buttons */}
                 {markers.length > 1 && (
-                    <div className="absolute bottom-8 left-[60%] transform flex items-center gap-4 bg-black/80 backdrop-blur-sm rounded-full px-6 py-3 border border-white/20 z-10">
+                    <div className="absolute bottom-8 left-[50%] transform flex items-center gap-4 bg-black/80 backdrop-blur-sm rounded-full px-6 py-3 border border-white/20 z-10">
                         <button
                             onClick={(e) => {
                                 e.stopPropagation();

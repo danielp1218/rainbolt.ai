@@ -1,5 +1,6 @@
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, File, UploadFile, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 import os
 from PIL import Image
 import io
@@ -8,6 +9,7 @@ import json
 import asyncio
 from pineconedb import query_pinecone_with_image
 from reasoning import think, estimate_coordinates
+from mapillary import get_mapillary_images
 
 
 app = FastAPI()
@@ -93,6 +95,34 @@ async def upload_image(file: UploadFile = File(...)):
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Invalid image file: {str(e)}")
 
+
+class MapillaryRequest(BaseModel):
+    latitude: float
+    longitude: float
+    radius: float = 0.003
+    limit: int = 5
+
+
+@app.post("/api/mapillary-images")
+async def get_mapillary_images_endpoint(request: MapillaryRequest):
+    """
+    Fetch Mapillary street view images for given coordinates
+    """
+    try:
+        images = get_mapillary_images(
+            lat=request.latitude,
+            lon=request.longitude,
+            radius=request.radius,
+            limit=request.limit
+        )
+        return {
+            "success": True,
+            "images": images,
+            "count": len(images)
+        }
+    except Exception as e:
+        print(f"Error fetching Mapillary images: {e}")
+        raise HTTPException(status_code=500, detail=f"Error fetching Mapillary images: {str(e)}")
 
 
 @app.websocket("/ws/chat/{session_id}")

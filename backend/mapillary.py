@@ -1,9 +1,7 @@
 import requests
 import os
-from dotenv import load_dotenv
 import math
 
-load_dotenv()  
 
 def haversine_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     """Calculate distance between two points in meters using Haversine formula"""
@@ -65,6 +63,8 @@ def get_mapillary_images(lat: float, lon: float, radius: float = 0.003, limit: i
         return []
 
 if __name__ == "__main__":
+    from dotenv import load_dotenv
+    load_dotenv()  
     # Eiffel Tower coordinates: 48.8584° N, 2.2945° E
     images = get_mapillary_images(48.858093, 2.294694, radius=0.001, limit=5)
     print(f"Found {len(images)} images")

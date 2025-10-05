@@ -5,6 +5,8 @@ from typing import Dict
 from langchain_google_genai import ChatGoogleGenerativeAI
 import base64
 import io
+import json
+import re
 
 os.environ["GRPC_VERBOSITY"] = "ERROR"
 os.environ["GRPC_TRACE"] = ""
@@ -97,7 +99,29 @@ def estimate_coordinates(reasoning) -> Dict:
             """
 
     response = model.invoke(prompt)
-    return response.content
+    
+    # Parse the response to extract coordinates
+    try:
+        # Try to find JSON array in the response
+        content = response.content
+        
+        # Extract JSON array from the response (it might be wrapped in markdown code blocks)
+        json_match = re.search(r'\[.*\]', content, re.DOTALL)
+        if json_match:
+            json_str = json_match.group(0)
+            # Replace single quotes with double quotes for valid JSON
+            json_str = json_str.replace("'", '"')
+            locations = json.loads(json_str)
+            
+            print("extracted locations:", locations)
+            return json.dumps(locations)
+        else:
+            print("Could not extract JSON from response")
+            return response.content
+            
+    except Exception as e:
+        print(f"Error processing coordinates: {e}")
+        return response.content
 
 def chat_with_context(user_message: str, conversation_history: str, image_matches: Dict, features: Dict, image: Image) -> str:
     """

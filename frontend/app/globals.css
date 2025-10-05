@@ -55,9 +55,6 @@
   --chart-5: 340 75% 55%;
 }
 
-* {
-  border-color: hsl(var(--border));
-}
 
 body {
   background-color: hsl(var(--background));
