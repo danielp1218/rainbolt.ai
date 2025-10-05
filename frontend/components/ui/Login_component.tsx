@@ -1,10 +1,10 @@
 "use client";
 
 import { Avatar, Box, Flex, Text, DropdownMenu, Button } from "@radix-ui/themes";
-import { useUser } from "@auth0/nextjs-auth0";
+import { useAuth0Firebase } from "@/hooks/useAuth0Firebase";
 
 export default function LoginComponent() {
-    const { user, isLoading } = useUser();
+    const { user, firebaseUserId, isLoading } = useAuth0Firebase();
 
     if (isLoading) {
         return (
@@ -17,7 +17,7 @@ export default function LoginComponent() {
                         fallback="..."
                     />
                     <Box>
-                        <Text as="div" size="2" weight="bold">
+                        <Text as="div" size="2" weight="bold" className="text-white">
                             Loading...
                         </Text>
                     </Box>
@@ -39,10 +39,10 @@ export default function LoginComponent() {
                                 fallback={user?.name?.[0]?.toUpperCase() || "G"}
                             />
                             <Box>
-                                <Text as="div" size="2" weight="bold">
+                                <Text as="div" size="2" weight="bold" className="text-white">
                                     {user?.name ? user.name.substring(0, 10) : "Guest"}
                                 </Text>
-                                <Text as="div" size="2" color="gray">
+                                <Text as="div" size="2" className="text-white/70">
                                     {user?.email || "Click to login"}
                                 </Text>
                             </Box>
