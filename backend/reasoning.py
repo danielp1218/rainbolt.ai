@@ -89,13 +89,14 @@ def estimate_coordinates(reasoning) -> Dict:
             You have 4 deliverables to provide in a JSON array format with 4 fields:
             1. "latitude": the latitude of the approximated location of the image
             2. "longitude": the longitude of the approximated location of the image
+            3. "name": the name of the location (e.g. estimated city, landmark, or region)
             3. "accuracy": a float between 0 and 100 representing the percentage confidence that the coordinates are correct
             4. "facts": a list of 3 concise fun facts about the location as text (include historical, cultural, geographical, or interesting facts that the place and its people are known for)
             
             Repeat this 3 times for the top 3 possible coordinate locations, each with a different set of coordinates. 
             
-            The output should be in the following JSON array format with 3 objects (each with 4 attributes):
-            [{"{"}{"'latitude': float, 'longitude': float, 'accuracy': float, 'facts': str"}{"}"}]
+            The output should be in the following JSON array format with 3 objects (each with 5 attributes):
+            [{"{"}{"'latitude': float, 'longitude': float, 'name': str, 'accuracy': float, 'facts': str"}{"}"}]
 
             """
 
