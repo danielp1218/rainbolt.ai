@@ -6,7 +6,7 @@ import { useGlobeSessions } from '@/hooks/useGlobeSessions';
 import { Button } from '@/components/ui/button';
 import { Navbar } from '@/components/ui/navbar';
 import { GlobeSession } from '@/lib/globe-database';
-import { Plus, Star, Globe, X, Trash2 } from 'lucide-react';
+import { Plus, Star, Globe, X, Trash2, Settings } from 'lucide-react';
 
 interface ConstellationNode {
   id: string;
@@ -21,7 +21,9 @@ const ConstellationNode: React.FC<{
   onMouseDown: (e: React.MouseEvent) => void;
   onClick: () => void;
   onDelete: () => void;
-}> = ({ node, onMouseDown, onClick, onDelete }) => {
+  isSettingsOpen: boolean;
+  onToggleSettings: () => void;
+}> = ({ node, onMouseDown, onClick, onDelete, isSettingsOpen, onToggleSettings }) => {
   return (
     <div
       data-node-id={node.id}
@@ -55,16 +57,43 @@ const ConstellationNode: React.FC<{
                 <div className="w-1.5 h-1.5 bg-white/60 rounded-full"></div>
                 <span className="text-xs text-white/70 font-medium ml-2">DRAG</span>
               </div>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onDelete();
-                }}
-                className="p-1 rounded hover:bg-red-500/30 transition-colors group"
-                title="Delete session"
-              >
-                <Trash2 className="w-3 h-3 text-white/60 group-hover:text-red-400" />
-              </button>
+              
+              {/* Settings/Delete Button */}
+              {!isSettingsOpen ? (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onToggleSettings();
+                  }}
+                  className="p-1 rounded hover:bg-white/20 transition-colors group"
+                  title="Settings"
+                >
+                  <Settings className="w-3 h-3 text-white/60 group-hover:text-white" />
+                </button>
+              ) : (
+                <div className="flex items-center space-x-1">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDelete();
+                    }}
+                    className="p-1 rounded hover:bg-red-500/30 transition-colors group"
+                    title="Delete session"
+                  >
+                    <Trash2 className="w-3 h-3 text-white/60 group-hover:text-red-400" />
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onToggleSettings();
+                    }}
+                    className="p-1 rounded hover:bg-white/20 transition-colors group"
+                    title="Close settings"
+                  >
+                    <X className="w-3 h-3 text-white/60 group-hover:text-white" />
+                  </button>
+                </div>
+              )}
             </div>
           </div>
 
@@ -119,6 +148,7 @@ export default function LearningPage() {
   const [nodes, setNodes] = useState<ConstellationNode[]>([]);
   const [selectedSession, setSelectedSession] = useState<GlobeSession | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [settingsOpenNodeId, setSettingsOpenNodeId] = useState<string | null>(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0});
   const [draggingNodeId, setDraggingNodeId] = useState<string | null>(null);
   const canvasRef = useRef<HTMLDivElement>(null);
@@ -152,6 +182,9 @@ export default function LearningPage() {
     e.preventDefault();
     const rect = canvasRef.current?.getBoundingClientRect();
     if (!rect) return;
+
+    // Close any open settings when starting to drag
+    setSettingsOpenNodeId(null);
 
     const node = nodesRef.current.find(n => n.id === nodeId);
     if (!node) return;
@@ -224,6 +257,10 @@ export default function LearningPage() {
     setShowCreateModal(true);
   };
 
+  const handleToggleSettings = (nodeId: string) => {
+    setSettingsOpenNodeId(prev => prev === nodeId ? null : nodeId);
+  };
+
   const handleDeleteSession = async (sessionId: string) => {
     try {
       // Show a confirmation dialog
@@ -231,6 +268,8 @@ export default function LearningPage() {
         await deleteSession(sessionId);
         // Remove from nodes state
         setNodes(prev => prev.filter(node => node.id !== sessionId));
+        // Close settings if this node had settings open
+        setSettingsOpenNodeId(null);
       }
     } catch (error) {
       console.error('Failed to delete session:', error);
@@ -294,6 +333,12 @@ export default function LearningPage() {
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
+        onClick={(e) => {
+          // Close settings when clicking on empty canvas
+          if (e.target === e.currentTarget) {
+            setSettingsOpenNodeId(null);
+          }
+        }}
         style={{
           background: `
             radial-gradient(circle at 20% 30%, rgba(0, 163, 255, 0.1) 0%, transparent 50%),
@@ -347,6 +392,8 @@ export default function LearningPage() {
             onMouseDown={(e) => handleMouseDown(e, node.id)}
             onClick={() => setSelectedSession(node.session)}
             onDelete={() => handleDeleteSession(node.id)}
+            isSettingsOpen={settingsOpenNodeId === node.id}
+            onToggleSettings={() => handleToggleSettings(node.id)}
           />
         ))}
 
