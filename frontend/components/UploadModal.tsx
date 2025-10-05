@@ -90,13 +90,19 @@ export const UploadModal: React.FC<UploadModalProps> = ({ isOpen, onClose, onCre
     setError(null);
 
     try {
-      // --- Call external session creation first ---
-      await onCreateSession(sessionTitle);
+      // --- Call external session creation first and get the session ID ---
+      const firebaseSessionId = await onCreateSession(sessionTitle);
+      console.log('Created Firebase session with ID:', firebaseSessionId);
 
-      // --- Upload file to API ---
+      if (!firebaseSessionId) {
+        throw new Error('Failed to create session - no session ID returned');
+      }
+
+      // --- Upload file to API with the Firebase session ID ---
       const formData = new FormData();
       formData.append('file', file);
       formData.append('title', title);
+      formData.append('session_id', firebaseSessionId); // Pass Firebase session ID to backend
 
       const response = await fetch('/api/upload', {
         method: 'POST',
@@ -111,7 +117,8 @@ export const UploadModal: React.FC<UploadModalProps> = ({ isOpen, onClose, onCre
       if (preview) useChatStore.setState({ uploadedImageUrl: preview });
 
       handleClose();
-      router.push(`/chat/${data.session_id}`);
+      // Use the Firebase session ID for navigation
+      router.push(`/chat/${firebaseSessionId}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Upload failed');
     } finally {

@@ -1,11 +1,11 @@
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, File, UploadFile, HTTPException
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, File, UploadFile, HTTPException, Form
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import os
 from pathlib import Path
 from PIL import Image
 import io
-from typing import List, Dict
+from typing import List, Dict, Optional
 import json
 import asyncio
 import logging
@@ -64,7 +64,7 @@ def read_root():
     return {"Hello": "World"}
 
 @app.post("/upload-image")
-async def upload_image(file: UploadFile = File(...)):
+async def upload_image(file: UploadFile = File(...), session_id: Optional[str] = Form(None)):
     """
     Upload and process an image file - returns session ID for WebSocket connection
     """
@@ -81,9 +81,12 @@ async def upload_image(file: UploadFile = File(...)):
         image = Image.open(io.BytesIO(contents))
         width, height = image.size
         
-        # Generate a session ID for this upload
-        import uuid
-        session_id = str(uuid.uuid4())
+        # Use provided session_id or generate a new one
+        if not session_id:
+            import uuid
+            session_id = str(uuid.uuid4())
+        
+        logger.info(f"Using session_id: {session_id}")
     
         # Save the file with session ID as name
         new_filename = f"{session_id}.jpg"

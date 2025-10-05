@@ -4,6 +4,7 @@ export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
     const file = formData.get('file') as File;
+    const sessionId = formData.get('session_id') as string;
 
     if (!file) {
       return NextResponse.json(
@@ -15,6 +16,11 @@ export async function POST(request: NextRequest) {
     // Create FormData to send to backend
     const backendFormData = new FormData();
     backendFormData.append('file', file);
+    
+    // Add session_id if provided
+    if (sessionId) {
+      backendFormData.append('session_id', sessionId);
+    }
 
     // Send to FastAPI backend
     const backendResponse = await fetch('http://localhost:8000/upload-image', {
