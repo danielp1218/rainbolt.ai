@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/Button";
 import EarthScene from "@/components/ui/Globe";
 
 import "./glow.css";
-import LoginComponent from "@/components/ui/LoginComponent";
 
 export default function Home() {
   const [currentSection, setCurrentSection] = useState(0);
@@ -189,7 +188,7 @@ export default function Home() {
                 Our Mission
               </h3>
               <p className="text-sm text-white/80 leading-relaxed">
-                We democratize geographic intelligence through AI that combines millions of geotagged images with expert geolocation strategies—not just guessing locations, but understanding them.
+                We democratize geographic intelligence through AI that combines millions of geotagged images with expert geolocation strategies. Not just guessing locations, but understanding them.
               </p>
             </div>
 
@@ -199,18 +198,27 @@ export default function Home() {
                 Why It Matters
               </h3>
               <p className="text-sm text-white/80 leading-relaxed">
-                Transform passive image viewing into active discovery. We're building geographic literacy one image at a time—for travelers, educators, researchers, and the curious.
+                Transform passive image viewing into active discovery. We're building geographic literacy one image at a time for travelers, educators, researchers, and the curious.
               </p>
             </div>
 
-            {/* The Technology */}
-            <div>
-              <h3 className="text-lg font-bold text-white mb-2">
-                The Technology
-              </h3>
-              <p className="text-sm text-white/80 leading-relaxed">
-                Our RAG model synthesizes visual patterns, cultural databases, and expert methodologies. Purpose-built for spatial accuracy—trained to think like elite geographic detectives.
-              </p>
+            <div className="flex gap-4 mt-8">
+              <div className="flex-1">
+                <img
+                  src="/rainbolt_cool.webp"
+                  alt="Rainbolt Cool"
+                  className="w-full h-32 object-cover rounded-lg bg-white/10"
+                />
+                <p className="text-white/60 text-sm mt-2 text-center">Trevor Rainbolt</p>
+              </div>
+              <div className="flex-1">
+                <img
+                  src="/rainbolt_staring.webp"
+                  alt="Rainbolt Staring"
+                  className="w-full h-32 object-cover rounded-lg bg-white/10"
+                />
+                <p className="text-white/60 text-sm mt-2 text-center">Rainbolt Focused</p>
+              </div>
             </div>
           </div>
         </div>

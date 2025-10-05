@@ -1,23 +1,23 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { useSearchParams } from "next/navigation";
+import { useParams } from "next/navigation";
 import SimpleGlobe from "@/components/ui/SimpleGlobe";
-import { ChatHeader } from "@/components/ChatHeader";
 import { ChatHistory } from "@/components/ChatHistory";
 import { ChatComposer } from "@/components/ChatComposer";
 import { useChatStore } from "@/components/useChatStore";
-import LoginComponent from "@/components/ui/LoginComponent";
 
 
 export default function ChatPage() {
-    const searchParams = useSearchParams();
+    const params = useParams();
+    const sessionId = params.sessionId as string;
     const uploadedImageUrl = useChatStore((state) => state.uploadedImageUrl);
     const markers = useChatStore((state) => state.markers);
     const currentMarker = useChatStore((state) => state.currentMarker);
     const setCurrentMarker = useChatStore((state) => state.setCurrentMarker);
     const nextMarker = useChatStore((state) => state.nextMarker);
     const previousMarker = useChatStore((state) => state.previousMarker);
+    const deleteMarker = useChatStore((state) => state.deleteMarker);
     const [isLocked, setIsLocked] = useState(false); // Start unlocked so user can drag globe
     const hasLockedRef = useRef(false); // Track if we've already locked to markers
     const [mapillaryImages, setMapillaryImages] = useState<Record<number, string[]>>({});
@@ -25,44 +25,42 @@ export default function ChatPage() {
 
     // Connect WebSocket when page mounts with session info
     useEffect(() => {
-        const sessionId = searchParams.get('session');
 
         // Get stored state
         const store = useChatStore.getState();
-        const { sessionId: storedSessionId, hasProcessedSession, connectWebSocket, markSessionProcessed } = store;
+        const { sessionId: storedSessionId, hasProcessedSession, ws, connectWebSocket } = store;
 
         console.log('Chat page mounted', {
             sessionId,
             storedSessionId,
             hasProcessedSession,
+            hasActiveWs: !!ws,
             hasUploadedImage: !!uploadedImageUrl
         });
 
-        // Only connect if we have session info and haven't processed this exact session yet
+        // Only connect if we have session info
         if (sessionId) {
-            // Check if this is the same session we already processed
-            if (storedSessionId === sessionId && hasProcessedSession) {
-                console.log('Session already processed, skipping WebSocket connection');
-                return;
-            }
-
-            // File path is always uploads/{sessionId}.{extension}
-            // We'll send the session ID and backend will construct the path
-            console.log('Connecting WebSocket from chat page...');
+            // The store will handle checking if already connected/processed
             connectWebSocket(sessionId).then(() => {
-                // Mark this session as processed after successful connection
-                markSessionProcessed(sessionId);
+                console.log('WebSocket connection established successfully');
             }).catch((err) => {
                 console.error('Failed to connect WebSocket:', err);
             });
         }
 
+        // Don't disconnect on cleanup - let the WebSocket persist
+        // Only disconnect when explicitly navigating away or closing the page
+    }, [sessionId, uploadedImageUrl]); // Re-run when session ID or image changes
+
+    // Cleanup WebSocket on actual page navigation away
+    useEffect(() => {
         return () => {
-            console.log('Chat page unmounting, disconnecting WebSocket');
-            // Get the latest disconnectWebSocket from store in cleanup
+            // This cleanup runs when the component is actually being removed from the DOM
+            // (not during React Strict Mode's double-mount)
+            console.log('Chat page being removed, disconnecting WebSocket');
             useChatStore.getState().disconnectWebSocket();
         };
-    }, [searchParams, uploadedImageUrl]); // Re-run when URL params or image changes
+    }, []); // Empty deps - only run on actual mount/unmount
 
     // Lock globe when markers are loaded
     useEffect(() => {
@@ -141,7 +139,8 @@ export default function ChatPage() {
     // Convert all markers to SimpleGlobe format
     const globeMarkers = markers.map(m => ({
         lat: m.latitude,
-        long: m.longitude
+        long: m.longitude,
+        confidence: m.accuracy * 100 // Convert accuracy from 0-1 to 0-100 scale
     }));
 
     console.log('Globe markers:', globeMarkers, 'Total markers:', markers.length);
@@ -194,17 +193,38 @@ export default function ChatPage() {
                                 <div className="flex-1">
                                     <div className="flex items-center justify-between mb-1">
                                         <h3 className="text-white font-semibold text-lg">{currentMarkerData.name}</h3>
-                                        <a
-                                            href={`https://www.google.com/maps/place/${currentMarkerData.latitude},${currentMarkerData.longitude}`}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="text-white/60 hover:text-blue-400 transition-colors p-1.5 hover:bg-white/10 rounded"
-                                            title="Open in Google Maps"
-                                        >
-                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                                            </svg>
-                                        </a>
+                                        <div className="flex items-center gap-1">
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    if (window.confirm('Are you sure you want to delete this location?')) {
+                                                        deleteMarker(currentMarker);
+                                                        // Close the popup if no markers left
+                                                        if (markers.length <= 1) {
+                                                            setIsLocked(false);
+                                                        }
+                                                    }
+                                                }}
+                                                onMouseDown={(e) => e.stopPropagation()}
+                                                className="text-white/60 hover:text-red-400 transition-colors p-1.5 hover:bg-red-500/10 rounded"
+                                                title="Delete location"
+                                            >
+                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                </svg>
+                                            </button>
+                                            <a
+                                                href={`https://www.google.com/maps/place/${currentMarkerData.latitude},${currentMarkerData.longitude}`}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="text-white/60 hover:text-blue-400 transition-colors p-1.5 hover:bg-white/10 rounded"
+                                                title="Open in Google Maps"
+                                            >
+                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                                </svg>
+                                            </a>
+                                        </div>
                                     </div>
                                     <div className="flex items-center gap-2 text-white/60 text-xs">
                                         <span>{currentMarkerData.latitude.toFixed(4)}°N</span>

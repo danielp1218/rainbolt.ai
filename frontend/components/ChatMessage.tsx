@@ -9,6 +9,7 @@ interface ChatMessageProps {
     role: 'user' | 'assistant';
     text: string;
     ts: number;
+    type?: 'status' | 'normal';
 }
 
 const formatTime = (timestamp: number) => {
@@ -20,8 +21,9 @@ const formatTime = (timestamp: number) => {
     });
 };
 
-function ChatMessageComponent({ role, text, ts }: ChatMessageProps) {
+function ChatMessageComponent({ role, text, ts, type = 'normal' }: ChatMessageProps) {
     const isUser = role === 'user';
+    const isStatus = type === 'status';
 
     const handleCopy = async () => {
         try {
@@ -30,6 +32,24 @@ function ChatMessageComponent({ role, text, ts }: ChatMessageProps) {
             console.error('Failed to copy:', err);
         }
     };
+
+    // Status message styling
+    if (isStatus) {
+        return (
+            <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.3, ease: 'easeOut' }}
+                className="flex w-full justify-center mb-3"
+            >
+                <div className="relative max-w-[85%] rounded-4xl px-4 py-2.5 bg-gradient-to-r from-blue-500/20 to-purple-500/20 border border-blue-400/30 backdrop-blur-sm">
+                    <p className="text-sm text-blue-200 font-medium italic">
+                        {text}
+                    </p>
+                </div>
+            </motion.div>
+        );
+    }
 
     return (
         <motion.div

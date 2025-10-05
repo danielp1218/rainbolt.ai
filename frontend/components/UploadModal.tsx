@@ -1,0 +1,282 @@
+'use client';
+
+import React, { useState, useRef } from 'react';
+import { useRouter } from 'next/navigation';
+import { Button } from './ui/Button';
+import { Dialog } from './ui/Dialog';
+import { useChatStore } from './useChatStore';
+
+interface UploadResult {
+  message: string;
+  session_id: string;
+  filename: string;
+  size: number;
+  dimensions: {
+    width: number;
+    height: number;
+  };
+  format: string;
+  file_path: string;
+}
+
+interface UploadModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+export const UploadModal: React.FC<UploadModalProps> = ({ isOpen, onClose }) => {
+  const router = useRouter();
+  const [file, setFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [dragActive, setDragActive] = useState(false);
+  const [preview, setPreview] = useState<string | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const handleFile = (selectedFile: File) => {
+    setFile(selectedFile);
+    setError(null);
+    
+    // Create preview
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setPreview(e.target?.result as string);
+    };
+    reader.readAsDataURL(selectedFile);
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      handleFile(e.target.files[0]);
+    }
+  };
+
+  const handleDrag = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActive(true);
+    } else if (e.type === "dragleave") {
+      setDragActive(false);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+    
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      handleFile(e.dataTransfer.files[0]);
+    }
+  };
+
+  const openFileDialog = () => {
+    inputRef.current?.click();
+  };
+
+  const handleUpload = async () => {
+    if (!file) {
+      setError('Please select a file first');
+      return;
+    }
+
+    setUploading(true);
+    setError(null);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Upload failed');
+      }
+
+      // Clear previous session and store the upload info
+      const store = useChatStore.getState();
+      store.clear();
+      
+      // Store image directly in zustand
+      if (preview) {
+        useChatStore.setState({ uploadedImageUrl: preview });
+      }
+      
+      // Close modal and redirect to chat
+      onClose();
+      router.push(`/chat/${data.session_id}`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Upload failed');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const clearFile = () => {
+    setFile(null);
+    setPreview(null);
+    setError(null);
+    if (inputRef.current) {
+      inputRef.current.value = '';
+    }
+  };
+
+  // Reset state when modal closes
+  const handleClose = () => {
+    clearFile();
+    setError(null);
+    onClose();
+  };
+
+  return (
+    <Dialog
+      isOpen={isOpen}
+      onClose={handleClose}
+      title="Upload Image"
+      description="Upload an image to start a new geolocation session"
+    >
+      <div className="space-y-6">
+        {/* Upload Box */}
+        <div
+          className={`
+            relative border-2 border-dashed rounded-xl p-8 transition-all duration-300 cursor-pointer
+            ${dragActive 
+              ? 'border-[#00a3ff] bg-[#00a3ff]/5 scale-[1.02]' 
+              : 'border-white/20 hover:border-[#00a3ff]/50 hover:bg-white/5'
+            }
+            ${file ? 'border-[#00a3ff] bg-[#00a3ff]/5' : ''}
+            group backdrop-blur-sm bg-black/20
+          `}
+          onDragEnter={handleDrag}
+          onDragLeave={handleDrag}
+          onDragOver={handleDrag}
+          onDrop={handleDrop}
+          onClick={openFileDialog}
+        >
+          <input
+            ref={inputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleFileChange}
+            className="hidden"
+          />
+          
+          <div className="text-center space-y-3">
+            {!file ? (
+              <>
+                <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-white/10 flex items-center justify-center group-hover:bg-white/20 transition-colors">
+                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                  </svg>
+                </div>
+                <div>
+                  <p className="text-base font-medium text-white mb-1">
+                    Drop your image here
+                  </p>
+                  <p className="text-sm text-white/60">
+                    or <span className="text-[#00a3ff] font-medium">browse files</span>
+                  </p>
+                  <p className="text-xs text-white/40 mt-2">
+                    PNG, JPG, GIF up to 10MB
+                  </p>
+                </div>
+              </>
+            ) : (
+              <div className="space-y-3">
+                <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-green-500/10 flex items-center justify-center">
+                  <svg className="w-6 h-6 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <div>
+                  <p className="text-base font-medium text-white mb-1">
+                    {file.name}
+                  </p>
+                  <p className="text-sm text-white/60">
+                    {(file.size / 1024 / 1024).toFixed(2)} MB
+                  </p>
+                </div>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    clearFile();
+                  }}
+                  className="mt-2"
+                >
+                  Change File
+                </Button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Image Preview */}
+        {preview && (
+          <div className="border border-white/10 rounded-lg p-3 bg-black/30">
+            <p className="text-sm font-medium mb-2 text-white/80">Preview</p>
+            <img 
+              src={preview} 
+              alt="Preview" 
+              className="w-full max-h-48 object-contain rounded bg-black/50"
+            />
+          </div>
+        )}
+
+        {/* Error Message */}
+        {error && (
+          <div className="border border-red-500/20 rounded-lg p-4 bg-red-500/5">
+            <div className="flex items-center gap-2">
+              <div className="w-5 h-5 rounded-full bg-red-500/20 flex items-center justify-center flex-shrink-0">
+                <svg className="w-3 h-3 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-red-400">Upload Failed</p>
+                <p className="text-xs text-white/60 mt-0.5">{error}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Action Buttons */}
+        <div className="flex gap-3 pt-2">
+          <Button
+            onClick={handleUpload}
+            disabled={!file || uploading}
+            className="flex-1"
+            size="lg"
+          >
+            {uploading ? (
+              <>
+                <svg className="animate-spin -ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                </svg>
+                Uploading...
+              </>
+            ) : (
+              'Upload & Start Session'
+            )}
+          </Button>
+          
+          <Button 
+            variant="outline" 
+            size="lg"
+            onClick={handleClose}
+          >
+            Cancel
+          </Button>
+        </div>
+      </div>
+    </Dialog>
+  );
+};

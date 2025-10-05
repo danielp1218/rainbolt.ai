@@ -10,6 +10,7 @@ interface Location {
   long: number;
   label?: string;
   color?: string;
+  confidence?: number; // 0-100 confidence score
 }
 
 interface SimpleGlobeProps {
@@ -25,6 +26,42 @@ export default function SimpleGlobe({ markers = [], targetMarkerIndex = 0, isLoc
   // Camera zoom constants
   const ZOOM_OUT = 4.5; // Unlocked/zoomed out state
   const ZOOM_IN = 2.5; // Locked/zoomed in state
+  
+  // Helper function to convert confidence (0-100) to color gradient from blue to green
+  const getConfidenceColor = (confidence: number = 50): string => {
+    // Clamp confidence between 0 and 100
+    const conf = Math.max(0, Math.min(100, confidence));
+    
+    // Normalize to 0-1 range for smooth interpolation
+    const t = conf / 100;
+    
+    // Smooth gradient from blue to green
+    // Blue at 0%: rgb(50, 100, 255)
+    // Cyan at 50%: rgb(0, 200, 200)
+    // Green at 100%: rgb(50, 255, 100)
+    
+    const startColor = { r: 50, g: 100, b: 255 };  // Blue
+    const midColor = { r: 0, g: 200, b: 200 };     // Cyan
+    const endColor = { r: 50, g: 255, b: 100 };    // Green
+    
+    let r, g, b;
+    
+    if (t < 0.5) {
+      // Interpolate between start (blue) and mid (cyan)
+      const localT = t * 2; // Map 0-0.5 to 0-1
+      r = Math.round(startColor.r + (midColor.r - startColor.r) * localT);
+      g = Math.round(startColor.g + (midColor.g - startColor.g) * localT);
+      b = Math.round(startColor.b + (midColor.b - startColor.b) * localT);
+    } else {
+      // Interpolate between mid (cyan) and end (green)
+      const localT = (t - 0.5) * 2; // Map 0.5-1 to 0-1
+      r = Math.round(midColor.r + (endColor.r - midColor.r) * localT);
+      g = Math.round(midColor.g + (endColor.g - midColor.g) * localT);
+      b = Math.round(midColor.b + (endColor.b - midColor.b) * localT);
+    }
+    
+    return `rgb(${r}, ${g}, ${b})`;
+  };
   
   const mountRef = useRef<HTMLDivElement>(null);
   const animationRef = useRef<{
@@ -271,8 +308,18 @@ export default function SimpleGlobe({ markers = [], targetMarkerIndex = 0, isLoc
       if (sceneRef.current.markerMeshes.length > 0) {
         const markerIntersects = raycaster.intersectObjects(sceneRef.current.markerMeshes, false);
         
+        // Get the parent group of the intersected mesh (the pin group)
+        let hoveredPinGroup: THREE.Object3D | null = null;
+        if (markerIntersects.length > 0) {
+          let obj = markerIntersects[0].object;
+          while (obj.parent && obj.parent !== sceneRef.current.markerGroup) {
+            obj = obj.parent;
+          }
+          hoveredPinGroup = obj;
+        }
+        
         // Reset previous hovered marker
-        if (hoveredMarker && (!markerIntersects.length || markerIntersects[0].object !== hoveredMarker)) {
+        if (hoveredMarker && hoveredMarker !== hoveredPinGroup) {
           hoveredMarker.scale.setScalar(1);
           hoveredMarker = null;
           if (mountRef.current) {
@@ -281,14 +328,11 @@ export default function SimpleGlobe({ markers = [], targetMarkerIndex = 0, isLoc
         }
         
         // Set new hovered marker
-        if (markerIntersects.length > 0) {
-          const newHover = markerIntersects[0].object as THREE.Mesh;
-          if (newHover !== hoveredMarker) {
-            hoveredMarker = newHover;
-            hoveredMarker.scale.setScalar(1.5);
-            if (mountRef.current) {
-              mountRef.current.style.cursor = 'pointer';
-            }
+        if (hoveredPinGroup && hoveredPinGroup !== hoveredMarker) {
+          hoveredMarker = hoveredPinGroup as THREE.Mesh;
+          hoveredMarker.scale.setScalar(1.3);
+          if (mountRef.current) {
+            mountRef.current.style.cursor = 'pointer';
           }
         }
       }
@@ -465,27 +509,75 @@ export default function SimpleGlobe({ markers = [], targetMarkerIndex = 0, isLoc
 
     // Add new markers
     if (markers.length > 0) {
-      const markerGeometry = new THREE.SphereGeometry(0.02, 6, 6);
+      // Create a pin shape using a group of geometries
+      const createPinGeometry = () => {
+        const pinGroup = new THREE.Group();
+        
+        // Pin head (teardrop shape)
+        const headGeometry = new THREE.SphereGeometry(0.025, 8, 8);
+        const head = new THREE.Mesh(headGeometry);
+        head.scale.set(1, 1.3, 1); // Elongate slightly
+        head.position.set(0, 0.025, 0);
+        
+        // Pin stem
+        const stemGeometry = new THREE.CylinderGeometry(0.006, 0.006, 0.04, 6);
+        const stem = new THREE.Mesh(stemGeometry);
+        stem.position.set(0, -0.005, 0);
+        
+        pinGroup.add(head);
+        pinGroup.add(stem);
+        
+        return pinGroup;
+      };
       
       markers.forEach((marker, index) => {
         const [x, y, z] = latLongToVector3(marker.lat, marker.long, 1.02);
         
-        // Use different color for the locked/target marker
+        // Use red for the locked/target marker, blue-to-green gradient for others
         const isTargetMarker = isLocked && index === targetMarkerIndex;
-        const markerColor = isTargetMarker ? '#00ff00' : (marker.color || '#ff0000');
+        const markerColor = isTargetMarker 
+          ? '#ff0000' // Red for locked/selected marker
+          : (marker.color || getConfidenceColor(marker.confidence || 50)); // Use confidence gradient (blue to green)
         
-        const markerMaterial = new THREE.MeshBasicMaterial({
+        const markerMaterial = new THREE.MeshStandardMaterial({
           color: markerColor,
           transparent: true,
-          opacity: 0.8,
+          opacity: 0.9,
+          metalness: 0.3,
+          roughness: 0.4,
         });
         
-        const markerMesh = new THREE.Mesh(markerGeometry, markerMaterial);
-        markerMesh.position.set(x, y, z);
-        markerMesh.userData = { markerIndex: index, markerData: marker, originalScale: 1 };
+        // Create pin group
+        const pinGroup = createPinGeometry();
+        
+        // Apply material to all meshes in the pin
+        pinGroup.traverse((child) => {
+          if (child instanceof THREE.Mesh) {
+            child.material = markerMaterial;
+          }
+        });
+        
+        // Position the pin
+        pinGroup.position.set(x, y, z);
+        
+        // Orient the pin to point outward from the globe center
+        const direction = new THREE.Vector3(x, y, z).normalize();
+        const up = new THREE.Vector3(0, 1, 0);
+        const quaternion = new THREE.Quaternion();
+        quaternion.setFromUnitVectors(up, direction);
+        pinGroup.setRotationFromQuaternion(quaternion);
+        
+        pinGroup.userData = { markerIndex: index, markerData: marker, originalScale: 1 };
 
-        markerGroup.add(markerMesh);
-        sceneRef.current.markerMeshes.push(markerMesh);
+        markerGroup.add(pinGroup);
+        
+        // Store all meshes in the pin for raycasting
+        pinGroup.traverse((child) => {
+          if (child instanceof THREE.Mesh) {
+            child.userData = pinGroup.userData;
+            sceneRef.current.markerMeshes.push(child);
+          }
+        });
       });
     }
   }, [markers, targetMarkerIndex, isLocked]);
