@@ -47,12 +47,13 @@ def think(image_matches: Dict, features: Dict, image: Image) -> str:
 
             Throughout your response, ensure that you convey your though process clearly and in an instructional + educational manner. Do not use stats, and instead give logical reasonings.
 
-            Provide your thought process and reasoning for choosing the coordinates in the following order: (DO NOT DISPLAY STEP BY STEP INSTRUCTIONS)
+            Be concise in your answers. Do not write long paragraphs more than 3 sentences long.
+
+            Provide your thought process and reasoning for choosing the coordinates in the following order: (DO NOT DISPLAY STEPS, INSTEAD USE HEADINGS)
             1. Identify key features/landmarks from the data provided and what you see in the image
             2. Explain their significance and why they point to a specific location
-            3. Clearly and concisely state the estimated location/area in one phrase.
-            4. Display coordinates at the end.
-            5. State estimated accuracy, and justify it.
+            3. Clearly and concisely state the specific location of the image.
+            5. State estimated accuracy.
 
             Write your response in a digestible format, using bullet points or numbered lists where appropriate. Do not use markdown formatting. Be concise as possible while ensuring clarity and completeness in your reasoning.
 """
@@ -89,7 +90,7 @@ def estimate_coordinates(reasoning) -> Dict:
             1. "latitude": the latitude of the approximated location of the image
             2. "longitude": the longitude of the approximated location of the image
             3. "accuracy": a float between 0 and 100 representing the percentage confidence that the coordinates are correct
-            4. "facts": a list of 3 concise fun facts about the location as text
+            4. "facts": a list of 3 concise fun facts about the location as text (include historical, cultural, geographical, or interesting facts that the place and its people are known for)
             
             Repeat this 3 times for the top 3 possible coordinate locations, each with a different set of coordinates. 
             
