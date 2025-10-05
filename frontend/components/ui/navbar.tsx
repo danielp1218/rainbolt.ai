@@ -10,9 +10,10 @@ import LoginComponent from "./LoginComponent";
 
 interface NavbarProps {
   currentSection: number;
+  variant?: 'default' | 'learning';
 }
 
-export function Navbar({ currentSection }: NavbarProps) {
+export function Navbar({ currentSection, variant = 'default' }: NavbarProps) {
   const [isVisible, setIsVisible] = useState(true);
   const [prevSection, setPrevSection] = useState(currentSection);
 
@@ -45,30 +46,32 @@ export function Navbar({ currentSection }: NavbarProps) {
             <div className="fixed top-6 right-10 z-[999]">
               <LoginComponent />
             </div>
-            <NavigationMenu>
-              <NavigationMenuList className="flex gap-8">
-                <NavigationMenuItem>
-                  <Link href="/learning" className="text-white/80 hover:text-white transition-colors">
-                    Learning
-                  </Link>
-                </NavigationMenuItem>
-                <NavigationMenuItem>
-                  <Link href="#features" className="text-white/80 hover:text-white transition-colors">
-                    Features
-                  </Link>
-                </NavigationMenuItem>
-                <NavigationMenuItem>
-                  <Link href="#about" className="text-white/80 hover:text-white transition-colors">
-                    About Us
-                  </Link>
-                </NavigationMenuItem>
-                <NavigationMenuItem>
-                  <Link href="#contact" className="text-white/80 hover:text-white transition-colors">
-                    Technology
-                  </Link>
-                </NavigationMenuItem>
-              </NavigationMenuList>
-            </NavigationMenu>
+            {variant !== 'learning' && (
+              <NavigationMenu>
+                <NavigationMenuList className="flex gap-8">
+                  <NavigationMenuItem>
+                    <Link href="/learning" className="text-white/80 hover:text-white transition-colors">
+                      Learning
+                    </Link>
+                  </NavigationMenuItem>
+                  <NavigationMenuItem>
+                    <Link href="#features" className="text-white/80 hover:text-white transition-colors">
+                      Features
+                    </Link>
+                  </NavigationMenuItem>
+                  <NavigationMenuItem>
+                    <Link href="#about" className="text-white/80 hover:text-white transition-colors">
+                      About Us
+                    </Link>
+                  </NavigationMenuItem>
+                  <NavigationMenuItem>
+                    <Link href="#contact" className="text-white/80 hover:text-white transition-colors">
+                      Technology
+                    </Link>
+                  </NavigationMenuItem>
+                </NavigationMenuList>
+              </NavigationMenu>
+            )}
           </div>
         </div>
       </div>

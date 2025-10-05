@@ -753,7 +753,7 @@ export default function LearningPage() {
         }
       }}
     >
-      <Navbar currentSection={0} />
+  <Navbar currentSection={0} variant="learning" />
       
       {/* Constellation Canvas */}
       <div 
