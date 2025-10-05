@@ -1,4 +1,4 @@
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, File, UploadFile, HTTPException, Form
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, File, UploadFile, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import os
@@ -62,11 +62,15 @@ logger.info(f"UPLOAD_DIR permissions: {oct(os.stat(UPLOAD_DIR).st_mode)[-3:]}")
 def read_root():
     return {"Hello": "World"}
 
-@app.post("/upload-image")
-async def upload_image(file: UploadFile = File(...), session_id: Optional[str] = Form(None)):
+@app.post("/upload-image/{session_id}")
+async def upload_image(session_id: str, file: UploadFile = File(...)):
     """
     Upload and process an image file - returns session ID for WebSocket connection
+    Session ID is passed as a path parameter
     """
+    logger.info(f"=== UPLOAD IMAGE REQUEST ===")
+    logger.info(f"Received session_id from path: {session_id}")
+    
     # Check if file is an image
     if not file.content_type.startswith("image/"):
         raise HTTPException(status_code=400, detail="File must be an image")
@@ -79,13 +83,6 @@ async def upload_image(file: UploadFile = File(...), session_id: Optional[str] =
     try:
         image = Image.open(io.BytesIO(contents))
         width, height = image.size
-        
-        # Use provided session_id or generate a new one
-        if not session_id:
-            import uuid
-            session_id = str(uuid.uuid4())
-        
-        logger.info(f"Using session_id: {session_id}")
     
         # Save the file with session ID as name
         new_filename = f"{session_id}.jpg"

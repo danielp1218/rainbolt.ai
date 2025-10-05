@@ -6,6 +6,10 @@ export async function POST(request: NextRequest) {
     const file = formData.get('file') as File;
     const sessionId = formData.get('session_id') as string;
 
+    console.log('=== UPLOAD API ROUTE ===');
+    console.log('Received file:', file?.name);
+    console.log('Received session_id:', sessionId);
+
     if (!file) {
       return NextResponse.json(
         { error: 'No file provided' },
@@ -13,18 +17,24 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create FormData to send to backend
+    if (!sessionId) {
+      return NextResponse.json(
+        { error: 'No session_id provided' },
+        { status: 400 }
+      );
+    }
+
+    // Create FormData to send to backend (just the file)
     const backendFormData = new FormData();
     backendFormData.append('file', file);
     
-    // Add session_id if provided
-    if (sessionId) {
-      backendFormData.append('session_id', sessionId);
-    }
-
-    // Send to FastAPI backend
+    // Send to FastAPI backend with session_id as PATH parameter
     const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
-    const backendResponse = await fetch(`${backendUrl}/upload-image`, {
+    const uploadUrl = `${backendUrl}/upload-image/${encodeURIComponent(sessionId)}`;
+    
+    console.log('Sending to backend URL:', uploadUrl);
+    
+    const backendResponse = await fetch(uploadUrl, {
       method: 'POST',
       body: backendFormData,
     });
