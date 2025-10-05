@@ -8,7 +8,7 @@ import { ChatMessage } from './ChatMessage';
 import { useChatStore } from './useChatStore';
 
 export function ChatHistory() {
-    const { messages, sending, thinking, statusMessage } = useChatStore();
+    const { messages, sending, thinking } = useChatStore();
     const scrollViewportRef = useRef<HTMLDivElement>(null);
     const [showScrollButton, setShowScrollButton] = useState(false);
     const [isAtBottom, setIsAtBottom] = useState(true);
@@ -18,10 +18,9 @@ export function ChatHistory() {
         console.log('ChatHistory state:', { 
             messagesCount: messages.length, 
             sending, 
-            thinking, 
-            statusMessage 
+            thinking
         });
-    }, [messages.length, sending, thinking, statusMessage]);
+    }, [messages.length, sending, thinking]);
 
     // Auto-scroll to bottom on new messages (only if user is already at bottom)
     useEffect(() => {
@@ -32,7 +31,7 @@ export function ChatHistory() {
                 behavior: 'smooth',
             });
         }
-    }, [messages.length, statusMessage, isAtBottom]);
+    }, [messages.length, isAtBottom]);
 
     // Check if user is at bottom
     const handleScroll = () => {
@@ -80,10 +79,6 @@ export function ChatHistory() {
                                     />
                                 </svg>
                             </div>
-                            <h3 className="text-white/80 font-medium mb-2">Start a conversation</h3>
-                            <p className="text-white/50 text-sm max-w-[250px]">
-                                Ask me anything about Rainbolt.ai or explore the globe
-                            </p>
                         </div>
                     )}
 
@@ -100,49 +95,12 @@ export function ChatHistory() {
                                 role={msg.role}
                                 text={msg.text}
                                 ts={msg.ts}
+                                type={msg.type}
                             />
                         ))}
 
-                        {/* Status message - temporary */}
-                        <AnimatePresence>
-                            {statusMessage && (
-                                <motion.div
-                                    initial={{ opacity: 0, y: 8 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    exit={{ opacity: 0, y: -8 }}
-                                    transition={{ duration: 0.2 }}
-                                    className="flex justify-start mb-3"
-                                >
-                                    <div className="max-w-[75%] rounded-2xl px-3 py-2 md:px-4 md:py-2.5 bg-blue-500/20 border border-blue-500/30 text-white/90">
-                                        <p className="text-sm leading-relaxed flex items-center gap-2">
-                                            <svg 
-                                                className="w-4 h-4 animate-spin" 
-                                                fill="none" 
-                                                viewBox="0 0 24 24"
-                                            >
-                                                <circle 
-                                                    className="opacity-25" 
-                                                    cx="12" 
-                                                    cy="12" 
-                                                    r="10" 
-                                                    stroke="currentColor" 
-                                                    strokeWidth="4"
-                                                />
-                                                <path 
-                                                    className="opacity-75" 
-                                                    fill="currentColor" 
-                                                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                                                />
-                                            </svg>
-                                            {statusMessage}
-                                        </p>
-                                    </div>
-                                </motion.div>
-                            )}
-                        </AnimatePresence>
-
                         {/* Typing/Thinking indicator */}
-                        {(sending || thinking) && !statusMessage && (
+                        {(sending || thinking) && (
                             <motion.div
                                 initial={{ opacity: 0, y: 8 }}
                                 animate={{ opacity: 1, y: 0 }}

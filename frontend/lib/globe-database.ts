@@ -48,6 +48,7 @@ export interface UserSession {
   email: string;
   displayName: string;
   profilePicture?: string;
+  sessionIds?: string[]; // Array of globe session IDs
   createdAt: any;
   lastActive: any;
 }
@@ -141,6 +142,23 @@ export const updateUserLastActive = async (userId: string) => {
   } catch (error) {
     console.error('Error updating last active:', error);
     return { success: false, error: (error as Error).message };
+  }
+};
+
+export const getUserSessionIds = async (userId: string): Promise<string[]> => {
+  try {
+    const docRef = doc(db, 'userSessions', userId);
+    const docSnap = await getDoc(docRef);
+    
+    if (docSnap.exists()) {
+      const userData = docSnap.data();
+      return userData.sessionIds || [];
+    }
+    
+    return [];
+  } catch (error) {
+    console.error('Error getting user session IDs:', error);
+    return [];
   }
 };
 

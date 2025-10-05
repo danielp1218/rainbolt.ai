@@ -109,7 +109,7 @@ export default function UploadPage() {
       }
       
       // Redirect to chat with session ID only (file path is always uploads/{session_id}.extension)
-      router.push(`/chat?session=${data.session_id}`);
+      router.push(`/chat/${data.session_id}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Upload failed');
     } finally {

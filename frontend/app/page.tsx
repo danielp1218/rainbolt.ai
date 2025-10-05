@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/Button";
 import EarthScene from "@/components/ui/Globe";
 
 import "./glow.css";
-import LoginComponent from "@/components/ui/LoginComponent";
 
 export default function Home() {
   const [currentSection, setCurrentSection] = useState(0);
@@ -170,7 +169,7 @@ export default function Home() {
         <div className="absolute inset-0 flex items-center justify-end pr-12">
           <div className="max-w-2xl bg-white/10 backdrop-blur-md rounded-lg p-8 border border-white/20 space-y-4 overflow-y-auto max-h-[80vh]">
             <h2 className="text-2xl font-bold text-white mb-4">
-              About rainbolt.ai
+              About <span className="text-white [text-shadow:0_0_10px_#fff,0_0_20px_#ff1a1a,0_0_30px_#800080] [animation:textGlowRed_3s_ease-in-out_infinite_alternate]">rainbolt.ai</span>
             </h2>
 
             {/* The Global Literacy Crisis */}
@@ -189,7 +188,7 @@ export default function Home() {
                 Our Mission
               </h3>
               <p className="text-sm text-white/80 leading-relaxed">
-                We democratize geographic intelligence through AI that combines millions of geotagged images with expert geolocation strategies—not just guessing locations, but understanding them.
+                We democratize geographic intelligence through AI that combines millions of geotagged images with expert geolocation strategies. Not just guessing locations, but understanding them.
               </p>
             </div>
 
@@ -199,18 +198,27 @@ export default function Home() {
                 Why It Matters
               </h3>
               <p className="text-sm text-white/80 leading-relaxed">
-                Transform passive image viewing into active discovery. We're building geographic literacy one image at a time—for travelers, educators, researchers, and the curious.
+                Transform passive image viewing into active discovery. We're building geographic literacy one image at a time for travelers, educators, researchers, and the curious.
               </p>
             </div>
 
-            {/* The Technology */}
-            <div>
-              <h3 className="text-lg font-bold text-white mb-2">
-                The Technology
-              </h3>
-              <p className="text-sm text-white/80 leading-relaxed">
-                Our RAG model synthesizes visual patterns, cultural databases, and expert methodologies. Purpose-built for spatial accuracy—trained to think like elite geographic detectives.
-              </p>
+            <div className="flex gap-4 mt-8">
+              <div className="flex-1">
+                <img
+                  src="/rainbolt_cool.webp"
+                  alt="Rainbolt Cool"
+                  className="w-full h-32 object-cover rounded-lg bg-white/10"
+                />
+                <p className="text-white/60 text-sm mt-2 text-center">Trevor Rainbolt</p>
+              </div>
+              <div className="flex-1">
+                <img
+                  src="/rainbolt_staring.webp"
+                  alt="Rainbolt Staring"
+                  className="w-full h-32 object-cover rounded-lg bg-white/10"
+                />
+                <p className="text-white/60 text-sm mt-2 text-center">Rainbolt Focused</p>
+              </div>
             </div>
           </div>
         </div>
@@ -259,7 +267,18 @@ export default function Home() {
 
       {/* Contact Section */}
       <section id="contact" data-section-id="4" className="relative h-screen snap-start">
-        <div className="absolute inset-0 flex items-center justify-center">
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-6">
+          <h2 className={`text-5xl font-bold text-white [text-shadow:0_0_10px_#fff,0_0_20px_#0066cc,0_0_30px_#0099ff] [animation:textGlowBlue_3s_ease-in-out_infinite_alternate] ${currentSection === 4 ? 'animate-slide-in' : 'opacity-0'}`}>
+            Tech Stack
+          </h2>
+          <div className={`max-w-7xl w-full px-4 ${currentSection === 4 ? 'animate-slide-in' : 'opacity-0'}`}>
+            <img
+              src="/Colorful Simple Modern Business Order Process Flowchart (1920 x 1080 px).png"
+              alt="Process Flowchart"
+              className="w-full h-auto"
+              style={{ maxHeight: '80vh', objectFit: 'contain' }}
+            />
+          </div>
         </div>
       </section>
     </div >

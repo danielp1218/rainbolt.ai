@@ -6,7 +6,8 @@ import {
   getUserSession, 
   createUserSession, 
   updateUserLastActive,
-  getUserByAuth0Id 
+  getUserByAuth0Id,
+  getUserSessionIds as getSessionIdsFromDb
 } from '@/lib/globe-database';
 
 interface UserContextType {
@@ -16,6 +17,7 @@ interface UserContextType {
   createUser: (userData: Omit<UserSession, 'id' | 'createdAt' | 'lastActive'>) => Promise<boolean>;
   updateLastActive: () => Promise<void>;
   refreshUser: () => Promise<void>;
+  getUserSessionIds: () => Promise<string[]>;
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
@@ -42,24 +44,6 @@ export const UserProvider = ({ children, auth0User }: UserProviderProps) => {
   useEffect(() => {
     const initializeUser = async () => {
       if (!auth0User) {
-        // For development: provide a mock user when no Auth0 user is present
-        const isDevelopment = process.env.NODE_ENV === 'development';
-        if (isDevelopment) {
-          // Create a mock user for development
-          const mockUser: UserSession = {
-            id: 'dev_user_123',
-            userId: 'dev_user_123',
-            auth0Id: 'dev_auth0_123',
-            email: 'student@example.com',
-            displayName: 'Development Student',
-            profilePicture: undefined,
-            createdAt: { seconds: Date.now() / 1000, nanoseconds: 0 },
-            lastActive: { seconds: Date.now() / 1000, nanoseconds: 0 }
-          };
-          setUser(mockUser);
-        } else {
-          setUser(null);
-        }
         setLoading(false);
         return;
       }
@@ -143,6 +127,21 @@ export const UserProvider = ({ children, auth0User }: UserProviderProps) => {
     }
   };
 
+  const getUserSessionIds = async (): Promise<string[]> => {
+    if (!user) {
+      console.warn('No user available to fetch session IDs');
+      return [];
+    }
+    
+    try {
+      const sessionIds = await getSessionIdsFromDb(user.userId);
+      return sessionIds;
+    } catch (err) {
+      console.error('Error fetching user session IDs:', err);
+      return [];
+    }
+  };
+
   // Update last active every 5 minutes when user is active
   useEffect(() => {
     if (!user) return;
@@ -161,6 +160,7 @@ export const UserProvider = ({ children, auth0User }: UserProviderProps) => {
     createUser,
     updateLastActive,
     refreshUser,
+    getUserSessionIds,
   };
 
   return (

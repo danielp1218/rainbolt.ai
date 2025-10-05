@@ -1,9 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import { Theme } from "@radix-ui/themes";
 import "@radix-ui/themes/styles.css";
 import "./globals.css";
-import { UserProvider } from "@/hooks/useUser";
+import { ClientLayout } from "@/components/ClientLayout";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -33,11 +32,9 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <UserProvider>
-          <Theme>
-            {children}
-          </Theme>
-        </UserProvider>
+        <ClientLayout>
+          {children}
+        </ClientLayout>
       </body>
     </html>
   );

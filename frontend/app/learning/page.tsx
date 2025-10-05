@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useMemo, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAuth0Firebase } from '@/hooks/useAuth0Firebase';
 import { useGlobeSessions } from '@/hooks/useGlobeSessions';
 import { useSessionLinks } from '@/hooks/useSessionLinks';
@@ -186,6 +187,7 @@ const ConstellationNode: React.FC<{
 });
 
 export default function LearningPage() {
+  const router = useRouter();
   const { user, firebaseUserId, isLoading } = useAuth0Firebase();
   const { sessions, loading: sessionsLoading, createNewSession: createSession, deleteSession, updateSessionData, updateSessionDataKey } = useGlobeSessions();
   const { links, createLink, removeLink, getConnectedSessions, reloadLinks, clearAllLinks } = useSessionLinks();
@@ -209,7 +211,7 @@ export default function LearningPage() {
     }
   }, [links, nodes]);
   const [selectedSession, setSelectedSession] = useState<GlobeSessionWithData | null>(null);
-  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showUploadModal, setShowUploadModal] = useState(false);
   const [settingsOpenNodeId, setSettingsOpenNodeId] = useState<string | null>(null);
   const [deleteConfirmation, setDeleteConfirmation] = useState<{
     isOpen: boolean;
@@ -468,48 +470,16 @@ export default function LearningPage() {
     setDraggingNodeId(null);
   };
 
-  const createSessionWithTitle = async (title: string) => {
-    try {
-      console.log('=== CREATE SESSION DEBUG ===');
-      console.log('Creating session with title:', title);
-      console.log('User object:', user);
-      console.log('User authenticated:', !!user);
-      console.log('Firebase user ID:', firebaseUserId);
-      console.log('Create session function:', typeof createSession);
-      
-      if (!firebaseUserId) {
-        console.error('No firebase user ID available');
-        console.log('User loading state:', isLoading);
-        alert('Please make sure you are logged in');
-        return;
-      }
-      
-      console.log('Calling createSession with:', title);
-      const sessionId = await createSession(title);
-      console.log('Created new session with ID:', sessionId);
-      setShowCreateModal(false);
-      
-      // Trigger a re-render by reloading sessions
-      console.log('Reloading page...');
-      window.location.reload();
-    } catch (error) {
-      console.error('Failed to create session:', error);
-      console.error('Error details:', {
-        message: (error as Error).message,
-        stack: (error as Error).stack
-      });
-      alert('Failed to create session: ' + (error as Error).message);
-    }
-  };
 
-  const openCreateModal = () => {
-    console.log('=== OPEN CREATE MODAL DEBUG ===');
-    console.log('openCreateModal called');
-    console.log('Current showCreateModal state:', showCreateModal);
+
+  const openUploadModal = () => {
+    console.log('=== OPEN UPLOAD MODAL DEBUG ===');
+    console.log('openUploadModal called');
+    console.log('Current showUploadModal state:', showUploadModal);
     console.log('User authenticated:', !!user);
     console.log('Firebase user ID:', firebaseUserId);
     console.log('Auth loading state:', isLoading);
-    setShowCreateModal(true);
+    setShowUploadModal(true);
     console.log('Modal should now be open, new state:', true);
   };
 
@@ -761,7 +731,7 @@ export default function LearningPage() {
   };
 
   const createNewSession = () => {
-    setShowCreateModal(true);
+    setShowUploadModal(true);
   };
 
   if (!user) {
@@ -869,7 +839,7 @@ export default function LearningPage() {
 
         {/* Floating Add Button */}
         <Button 
-          onClick={openCreateModal}
+          onClick={openUploadModal}
           className="absolute top-32 right-8 z-20 bg-white/10 backdrop-blur-md border border-white/20 text-white hover:bg-white/20 transition-all duration-300"
           size="lg"
         >
@@ -891,7 +861,7 @@ export default function LearningPage() {
               if (isLinking && linkingFromNodeId !== node.id) {
                 handleCompleteLink(node.id);
               } else {
-                setSelectedSession(node.session);
+                router.push(`/chat/${node.id}`);
               }
             }}
             onDelete={() => handleDeleteSession(node.id)}
@@ -936,7 +906,7 @@ export default function LearningPage() {
               <Button 
                 onClick={(e) => {
                   e.stopPropagation(); // Prevent the empty state click handler from interfering
-                  openCreateModal();
+                  openUploadModal();
                 }}
                 className="bg-white/10 backdrop-blur-md border border-white/20 text-white hover:bg-white/20 transition-all duration-300 relative z-10 pointer-events-auto"
                 size="lg"
@@ -1217,13 +1187,11 @@ export default function LearningPage() {
         />
       )}
 
-      {/* Create Session Modal */}
-      {showCreateModal && (
-        <CreateSessionModal 
-          onClose={() => setShowCreateModal(false)}
-          onCreateSession={createSessionWithTitle}
-        />
-      )}
+      {/* Upload Modal for New Session */}
+      <UploadModal 
+        isOpen={showUploadModal}
+        onClose={() => setShowUploadModal(false)}
+      />
 
       {/* Delete Confirmation Modal */}
       {deleteConfirmation.isOpen && (
@@ -1477,78 +1445,3 @@ function SessionDetailModal({ session, onClose }: { session: GlobeSessionWithDat
   );
 }
 
-function CreateSessionModal({ 
-  onClose, 
-  onCreateSession 
-}: { 
-  onClose: () => void;
-  onCreateSession: (title: string) => Promise<void>;
-}) {
-  const [title, setTitle] = useState('');
-  const [isCreating, setIsCreating] = useState(false);
-
-  console.log('=== CREATE SESSION MODAL RENDERED ===');
-  console.log('Modal props:', { onClose: typeof onClose, onCreateSession: typeof onCreateSession });
-
-  return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white/10 backdrop-blur-md rounded-lg border border-white/20 w-full max-w-md">
-        <div className="p-6">
-          <h2 className="text-2xl font-bold text-white mb-6">Start New Globe Session</h2>
-          
-          <div className="space-y-4">
-            <div>
-              <label className="block text-white/80 text-sm font-medium mb-2">
-                Session Title
-              </label>
-              <input
-                type="text"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && title.trim() && !isCreating) {
-                    e.preventDefault();
-                    document.querySelector<HTMLButtonElement>('[data-create-button]')?.click();
-                  }
-                }}
-                placeholder="e.g., Exploring Southeast Asia"
-                className="w-full px-3 py-2 bg-white/10 border border-white/30 rounded-lg text-white placeholder:text-white/50 focus:outline-none focus:border-white/60"
-                autoFocus
-              />
-            </div>
-            
-            <div className="flex gap-3 mt-6">
-              <Button 
-                onClick={onClose}
-                variant="outline" 
-                className="flex-1 border-white/30 text-white hover:bg-white/20"
-              >
-                Cancel
-              </Button>
-              <Button 
-                disabled={!title.trim() || isCreating}
-                className="flex-1 bg-white text-black hover:bg-white/90"
-                data-create-button
-                onClick={async () => {
-                  if (!title.trim()) return;
-                  
-                  setIsCreating(true);
-                  try {
-                    await onCreateSession(title.trim());
-                  } catch (error) {
-                    console.error('Failed to create session:', error);
-                    // The error handling is done in the parent component
-                  } finally {
-                    setIsCreating(false);
-                  }
-                }}
-              >
-                {isCreating ? 'Creating...' : 'Start Exploring'}
-              </Button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}

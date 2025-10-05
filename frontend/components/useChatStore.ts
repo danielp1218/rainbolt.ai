@@ -1,11 +1,14 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
+import { createFirebaseStorage } from '@/lib/firebase-storage';
+import { setCurrentSessionId } from '@/lib/session-context';
 
 export type Message = {
     id: string;
     role: 'user' | 'assistant';
     text: string;
     ts: number;
+    type?: 'status' | 'normal'; // Add type field for status messages
 };
 
 export type Marker = {
@@ -22,7 +25,6 @@ type ChatState = {
     messages: Message[];
     sending: boolean;
     thinking: boolean;
-    statusMessage: string | null; // Temporary status message
     ws: WebSocket | null;
     sessionId: string | null;
     currentAssistantMessage: string;
@@ -37,6 +39,8 @@ type ChatState = {
     disconnectWebSocket: () => void;
     markSessionProcessed: (sessionId: string) => void;
     setMarkers: (markers: Marker[]) => void;
+    addMarkers: (markers: Marker[]) => void;
+    deleteMarker: (index: number) => void;
     setCurrentMarker: (index: number) => void;
     nextMarker: () => void;
     previousMarker: () => void;
@@ -49,7 +53,6 @@ export const useChatStore = create<ChatState>()(
             messages: [],
             sending: false,
             thinking: false,
-            statusMessage: null,
             ws: null,
             sessionId: null,
             currentAssistantMessage: '',
@@ -70,6 +73,30 @@ export const useChatStore = create<ChatState>()(
 
             setMarkers: (markers: Marker[]) => {
                 set({ markers, currentMarker: 0 });
+            },
+
+            addMarkers: (markers: Marker[]) => {
+                const state = get();
+                set({ markers: [...state.markers, ...markers] });
+            },
+
+            deleteMarker: (index: number) => {
+                const state = get();
+                if (index < 0 || index >= state.markers.length) return;
+                
+                const newMarkers = state.markers.filter((_, i) => i !== index);
+                
+                // Adjust currentMarker if needed
+                let newCurrentMarker = state.currentMarker;
+                if (newMarkers.length === 0) {
+                    newCurrentMarker = 0;
+                } else if (state.currentMarker >= newMarkers.length) {
+                    newCurrentMarker = newMarkers.length - 1;
+                } else if (state.currentMarker > index) {
+                    newCurrentMarker = state.currentMarker - 1;
+                }
+                
+                set({ markers: newMarkers, currentMarker: newCurrentMarker });
             },
 
             setCurrentMarker: (index: number) => {
@@ -99,6 +126,13 @@ export const useChatStore = create<ChatState>()(
         return new Promise<void>((resolve, reject) => {
             const state = get();
             
+            // Check if we already have an active WebSocket for this session
+            if (state.ws && state.sessionId === sessionId) {
+                console.log('WebSocket already connected for this session, reusing existing connection');
+                resolve();
+                return;
+            }
+            
             // Check if this session has already been processed
             if (state.sessionId === sessionId && state.hasProcessedSession) {
                 console.log('Session already processed, skipping process_image message');
@@ -120,14 +154,23 @@ export const useChatStore = create<ChatState>()(
                     console.log('WebSocket message received:', data.type, data);
 
                     if (data.type === 'status') {
-                        // Update thinking status and show temporary status message
-                        console.log('Setting status message:', data.message);
-                        set({ thinking: true, statusMessage: data.message });
+                        // Create a status message instead of using temporary statusMessage
+                        console.log('[WebSocket Status]:', data.message);
+                        
+                        const statusMsg: Message = {
+                            id: `status-${Date.now()}`,
+                            role: 'assistant',
+                            text: data.message,
+                            ts: Date.now(),
+                            type: 'status'
+                        };
+                        
+                        set({ 
+                            messages: [...state.messages, statusMsg],
+                            thinking: true 
+                        });
                     } else if (data.type === 'reasoning_chunk' || data.type === 'chat_response_chunk') {
-                        // Clear status message when actual content starts streaming
-                        if (state.statusMessage) {
-                            set({ statusMessage: null });
-                        }
+                        console.log('[WebSocket Chunk]:', data.type, 'Length:', data.text.length);
                         
                         // Append to current assistant message (streaming)
                         const updatedText = state.currentAssistantMessage + data.text;
@@ -135,12 +178,13 @@ export const useChatStore = create<ChatState>()(
 
                         // Update or create assistant message
                         const lastMessage = state.messages[state.messages.length - 1];
-                        if (lastMessage && lastMessage.role === 'assistant') {
-                            // Update existing message
+                        if (lastMessage && lastMessage.role === 'assistant' && lastMessage.type !== 'status') {
+                            // Update existing message (but not status messages)
                             const updatedMessages = [...state.messages];
                             updatedMessages[updatedMessages.length - 1] = {
                                 ...lastMessage,
-                                text: updatedText
+                                text: updatedText,
+                                type: 'normal'
                             };
                             set({ messages: updatedMessages });
                         } else {
@@ -149,14 +193,15 @@ export const useChatStore = create<ChatState>()(
                                 id: `assistant-${Date.now()}`,
                                 role: 'assistant',
                                 text: updatedText,
-                                ts: Date.now()
+                                ts: Date.now(),
+                                type: 'normal'
                             };
                             set({ messages: [...state.messages, newMessage] });
                         }
                     } else if (data.type === 'coordinates') {
                         // Handle coordinates as a separate formatted message
                         try {
-                            console.log('Received coordinates, raw text:', data.text);
+                            console.log('[WebSocket Coordinates] Received, raw text:', data.text);
                             
                             // Try to extract JSON from the text more robustly
                             let cleanedText = data.text;
@@ -174,17 +219,12 @@ export const useChatStore = create<ChatState>()(
                             const coordinates = JSON.parse(cleanedText);
                             console.log('Parsed coordinates:', coordinates);
                             
-                            const formattedCoords = coordinates.map((coord: any, index: number) =>
-                                `${index + 1}. Latitude: ${coord.latitude}, Longitude: ${coord.longitude}`
-                            ).join('\n');
-
-                            const coordsMessage = `📍 Predicted Coordinates:\n${formattedCoords}`;
-
                             const newMessage: Message = {
                                 id: `assistant-${Date.now()}`,
                                 role: 'assistant',
-                                text: coordsMessage,
-                                ts: Date.now()
+                                text: `📍 ${coordinates.length} location(s) identified.`,
+                                ts: Date.now(),
+                                type: 'status'
                             };
                             set({ messages: [...state.messages, newMessage] });
 
@@ -193,18 +233,21 @@ export const useChatStore = create<ChatState>()(
                                 latitude: coord.latitude,
                                 longitude: coord.longitude,
                                 accuracy: coord.accuracy / 100, // Convert percentage to decimal
-                                facts: Array.isArray(coord.facts) ? coord.facts.join('. ') : coord.facts
+                                facts: Array.isArray(coord.facts) ? coord.facts.join('. ') : coord.facts,
+                                name: coord.name || 'Unknown Location',
                             }));
                             
-                            console.log('Setting markers from coordinates:', newMarkers);
-                            set({ markers: newMarkers, currentMarker: 0 });
+                            console.log('Appending markers from coordinates:', newMarkers);
+                            // Append to existing markers instead of replacing
+                            const currentMarkers = get().markers;
+                            set({ markers: [...currentMarkers, ...newMarkers] });
 
                         } catch (e) {
                             console.error('Failed to parse coordinates:', e, 'Raw data:', data.text);
                         }
                     } else if (data.type === 'complete') {
                         // Analysis complete
-                        console.log('Received complete message, resetting sending and thinking flags');
+                        console.log('[WebSocket Complete] Analysis finished, resetting flags');
 
                         // Clear any pending timeout
                         const ws = get().ws;
@@ -213,9 +256,10 @@ export const useChatStore = create<ChatState>()(
                             delete (ws as any).sendingTimeout;
                         }
 
-                        set({ thinking: false, sending: false, currentAssistantMessage: '', statusMessage: null });
+                        set({ thinking: false, sending: false, currentAssistantMessage: '' });
                     } else if (data.type === 'error') {
                         // Handle error
+                        console.error('[WebSocket Error]:', data.message);
 
                         // Clear any pending timeout
                         const ws = get().ws;
@@ -228,21 +272,21 @@ export const useChatStore = create<ChatState>()(
                             id: `error-${Date.now()}`,
                             role: 'assistant',
                             text: `Error: ${data.message}`,
-                            ts: Date.now()
+                            ts: Date.now(),
+                            type: 'normal'
                         };
                         set({
                             messages: [...state.messages, errorMessage],
                             thinking: false,
                             sending: false,
-                            currentAssistantMessage: '',
-                            statusMessage: null
+                            currentAssistantMessage: ''
                         });
                     }
                 };
 
                 ws.onerror = (error) => {
                     console.error('WebSocket error:', error);
-                    set({ thinking: false, sending: false, statusMessage: null });
+                    set({ thinking: false, sending: false });
                     reject(error);
                 };
 
@@ -252,7 +296,7 @@ export const useChatStore = create<ChatState>()(
                         reason: event.reason,
                         wasClean: event.wasClean
                     });
-                    set({ thinking: false, sending: false, ws: null, statusMessage: null });
+                    set({ thinking: false, sending: false, ws: null });
                     
                     // Attempt to reconnect if connection was not closed intentionally
                     if (!event.wasClean && event.code !== 1000) {
@@ -267,11 +311,15 @@ export const useChatStore = create<ChatState>()(
             }
             
             console.log('Connecting to WebSocket...', { sessionId });
+            
+            // Mark session as being processed IMMEDIATELY to prevent double connections
+            set({ sessionId, hasProcessedSession: true });
+            
             const ws = new WebSocket(`ws://localhost:8000/ws/chat/${sessionId}`);
             
             ws.onopen = () => {
                 console.log('WebSocket connected, sending process_image request');
-                set({ thinking: true, sessionId, ws });
+                set({ thinking: true, ws });
                 
                 // Send process image request
                 const message = {
@@ -295,15 +343,23 @@ export const useChatStore = create<ChatState>()(
                         console.log('WebSocket message received (new session):', data.type, data);
 
                         if (data.type === 'status') {
-                            // Update thinking status and show temporary status message
-                            console.log('Setting status message (new session):', data.message);
-                            set({ thinking: true, statusMessage: data.message });
+                            // Create a status message instead of using temporary statusMessage
+                            console.log('[WebSocket Status - New Session]:', data.message);
+                            
+                            const statusMsg: Message = {
+                                id: `status-${Date.now()}`,
+                                role: 'assistant',
+                                text: data.message,
+                                ts: Date.now(),
+                                type: 'status'
+                            };
+                            
+                            set({ 
+                                messages: [...state.messages, statusMsg],
+                                thinking: true 
+                            });
                         } else if (data.type === 'reasoning_chunk' || data.type === 'chat_response_chunk') {
-                            // Clear status message when actual content starts streaming
-                            if (state.statusMessage) {
-                                console.log('Clearing status message, content is streaming');
-                                set({ statusMessage: null });
-                            }
+                            console.log('[WebSocket Chunk - New Session]:', data.type, 'Length:', data.text.length);
                             
                             // Append to current assistant message (streaming)
                             const updatedText = state.currentAssistantMessage + data.text;
@@ -311,12 +367,13 @@ export const useChatStore = create<ChatState>()(
 
                             // Update or create assistant message
                             const lastMessage = state.messages[state.messages.length - 1];
-                            if (lastMessage && lastMessage.role === 'assistant') {
-                                // Update existing message
+                            if (lastMessage && lastMessage.role === 'assistant' && lastMessage.type !== 'status') {
+                                // Update existing message (but not status messages)
                                 const updatedMessages = [...state.messages];
                                 updatedMessages[updatedMessages.length - 1] = {
                                     ...lastMessage,
-                                    text: updatedText
+                                    text: updatedText,
+                                    type: 'normal'
                                 };
                                 set({ messages: updatedMessages });
                             } else {
@@ -325,14 +382,15 @@ export const useChatStore = create<ChatState>()(
                                     id: `assistant-${Date.now()}`,
                                     role: 'assistant',
                                     text: updatedText,
-                                    ts: Date.now()
+                                    ts: Date.now(),
+                                    type: 'normal'
                                 };
                                 set({ messages: [...state.messages, newMessage] });
                             }
                         } else if (data.type === 'coordinates') {
                             // Handle coordinates as a separate formatted message
                             try {
-                                console.log('Received coordinates, raw text:', data.text);
+                                console.log('[WebSocket Coordinates - New Session] Received, raw text:', data.text);
                                 
                                 // Try to extract JSON from the text more robustly
                                 let cleanedText = data.text;
@@ -350,17 +408,12 @@ export const useChatStore = create<ChatState>()(
                                 const coordinates = JSON.parse(cleanedText);
                                 console.log('Parsed coordinates:', coordinates);
                                 
-                                const formattedCoords = coordinates.map((coord: any, index: number) =>
-                                    `${index + 1}. Latitude: ${coord.latitude}, Longitude: ${coord.longitude}`
-                                ).join('\n');
-
-                                const coordsMessage = `📍 Predicted Coordinates:\n${formattedCoords}`;
-
                                 const newMessage: Message = {
                                     id: `assistant-${Date.now()}`,
                                     role: 'assistant',
-                                    text: coordsMessage,
-                                    ts: Date.now()
+                                    text: `📍 ${coordinates.length} location(s) identified.`,
+                                    ts: Date.now(),
+                                    type: 'status'
                                 };
                                 set({ messages: [...state.messages, newMessage] });
 
@@ -373,15 +426,17 @@ export const useChatStore = create<ChatState>()(
                                     name: coord.name || 'Unknown Location',
                                 }));
                                 
-                                console.log('Setting markers from coordinates:', newMarkers);
-                                set({ markers: newMarkers, currentMarker: 0 });
+                                console.log('Appending markers from coordinates:', newMarkers);
+                                // Append to existing markers instead of replacing
+                                const currentMarkers = get().markers;
+                                set({ markers: [...currentMarkers, ...newMarkers] });
 
                             } catch (e) {
                                 console.error('Failed to parse coordinates:', e, 'Raw data:', data.text);
                             }
                         } else if (data.type === 'complete') {
                             // Analysis complete
-                            console.log('Received complete message, resetting sending and thinking flags');
+                            console.log('[WebSocket Complete - New Session] Analysis finished, resetting flags');
 
                             // Clear any pending timeout
                             const ws = get().ws;
@@ -390,9 +445,10 @@ export const useChatStore = create<ChatState>()(
                                 delete (ws as any).sendingTimeout;
                             }
 
-                            set({ thinking: false, sending: false, currentAssistantMessage: '', statusMessage: null });
+                            set({ thinking: false, sending: false, currentAssistantMessage: '' });
                         } else if (data.type === 'error') {
                             // Handle error
+                            console.error('[WebSocket Error - New Session]:', data.message);
 
                             // Clear any pending timeout
                             const ws = get().ws;
@@ -405,21 +461,21 @@ export const useChatStore = create<ChatState>()(
                                 id: `error-${Date.now()}`,
                                 role: 'assistant',
                                 text: `Error: ${data.message}`,
-                                ts: Date.now()
+                                ts: Date.now(),
+                                type: 'normal'
                             };
                             set({
                                 messages: [...state.messages, errorMessage],
                                 thinking: false,
                                 sending: false,
-                                currentAssistantMessage: '',
-                                statusMessage: null
+                                currentAssistantMessage: ''
                             });
                         }
                     };
 
                     ws.onerror = (error) => {
                         console.error('WebSocket error:', error);
-                        set({ thinking: false, sending: false, statusMessage: null });
+                        set({ thinking: false, sending: false });
                         reject(error);
                     };
 
@@ -429,7 +485,7 @@ export const useChatStore = create<ChatState>()(
                             reason: event.reason,
                             wasClean: event.wasClean
                         });
-                        set({ thinking: false, sending: false, ws: null, statusMessage: null });
+                        set({ thinking: false, sending: false, ws: null });
                         
                         // Attempt to reconnect if connection was not closed intentionally
                         if (!event.wasClean && event.code !== 1000) {
@@ -446,7 +502,7 @@ export const useChatStore = create<ChatState>()(
                 const { ws } = get();
                 if (ws) {
                     ws.close();
-                    set({ ws: null, thinking: false, sending: false, statusMessage: null });
+                    set({ ws: null, thinking: false, sending: false });
                 }
             },
 
@@ -474,7 +530,8 @@ export const useChatStore = create<ChatState>()(
                             id: `error-${Date.now()}`,
                             role: 'assistant',
                             text: 'Connection lost. Please refresh the page to continue.',
-                            ts: Date.now()
+                            ts: Date.now(),
+                            type: 'normal'
                         };
                         set({ messages: [...state.messages, errorMessage] });
                         return;
@@ -494,6 +551,7 @@ export const useChatStore = create<ChatState>()(
                     role: 'user',
                     text: text.trim(),
                     ts: Date.now(),
+                    type: 'normal'
                 };
 
                 // Get fresh state after potential reconnection
@@ -552,19 +610,37 @@ export const useChatStore = create<ChatState>()(
             },
 
     clear: () => {
-        set({ messages: [], currentAssistantMessage: '', uploadedImageUrl: null, hasProcessedSession: false, markers: [], currentMarker: 0, statusMessage: null });
+        set({ messages: [], currentAssistantMessage: '', uploadedImageUrl: null, hasProcessedSession: false, markers: [], currentMarker: 0 });
     },
         }),
         {
             name: 'rainbolt-chat-storage',
-            partialize: (state) => ({
-                messages: state.messages,
-                sessionId: state.sessionId,
-                uploadedImageUrl: state.uploadedImageUrl,
-                hasProcessedSession: state.hasProcessedSession,
-                markers: state.markers,
-                currentMarker: state.currentMarker,
-            }),
+            storage: createJSONStorage(() => createFirebaseStorage({
+                getUserId: () => {
+                    // Import dynamically to avoid circular dependencies
+                    const { getCurrentUserId } = require('@/lib/user-context');
+                    return getCurrentUserId();
+                },
+                getSessionId: () => {
+                    // Import dynamically to avoid circular dependencies
+                    const { getCurrentSessionId } = require('@/lib/session-context');
+                    return getCurrentSessionId();
+                },
+                collectionName: 'globeSessions'
+            })),
+            partialize: (state) => {
+                // Update global session context whenever session ID changes
+                setCurrentSessionId(state.sessionId);
+                
+                return {
+                    messages: state.messages,
+                    sessionId: state.sessionId,
+                    uploadedImageUrl: state.uploadedImageUrl,
+                    hasProcessedSession: state.hasProcessedSession,
+                    markers: state.markers,
+                    currentMarker: state.currentMarker,
+                };
+            },
         }
     )
 );

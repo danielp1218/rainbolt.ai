@@ -65,6 +65,11 @@ export function Navbar({ currentSection, variant = 'default' }: NavbarProps) {
                     </Link>
                   </NavigationMenuItem>
                   <NavigationMenuItem>
+                  <Link href="#team" className="text-white/80 hover:text-white transition-colors">
+                    Team
+                  </Link>
+                </NavigationMenuItem>
+                <NavigationMenuItem>
                     <Link href="#contact" className="text-white/80 hover:text-white transition-colors">
                       Technology
                     </Link>
