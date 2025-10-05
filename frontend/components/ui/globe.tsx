@@ -665,8 +665,8 @@ intensity = pow(intensity, 1.5); // Reduced exponent for larger middle gradient
       0: { position: [7, 0, 4], lookAt: [-7.7, 0, 0] },        // Hero - default view
       1: { position: [6, -4, 2], lookAt: [-7.7, 1, -0.85] },      // Features - globe at bottom, camera lower
       2: { position: [12, 0, -24], lookAt: [-7.7, 0, 0] },       // About - globe on left, camera further away
-      3: { position: [10, -2.5, 1], lookAt: [-7.7, 0, 10] },       // Team - camera much closer, globe on right, zoom on Waterloo
-      4: { position: [50, 30, 40], lookAt: [100, 50, 80] },       // Contact - camera zoomed OUT into the stars
+      3: { position: [10, -3, 1], lookAt: [-7.7, 0, 10] },       // Team - camera lower to show Waterloo higher, zoom on Waterloo
+      4: { position: [20, 15, 20], lookAt: [30, 20, 30] },       // Contact - moderate zoom showing stars with earth smaller
     };
 
     const config = positions[currentSection] || positions[0];
