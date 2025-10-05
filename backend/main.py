@@ -52,8 +52,12 @@ BASE_DIR = Path(__file__).resolve().parent
 UPLOAD_DIR = BASE_DIR / "uploads"
 UPLOAD_DIR.mkdir(exist_ok=True)
 
+# Set directory permissions to be readable/writable by all (755)
+os.chmod(UPLOAD_DIR, 0o755)
+
 logger.info(f"UPLOAD_DIR set to: {UPLOAD_DIR}")
 logger.info(f"Current working directory: {os.getcwd()}")
+logger.info(f"UPLOAD_DIR permissions: {oct(os.stat(UPLOAD_DIR).st_mode)[-3:]}")
 
 @app.get("/")
 def read_root():
@@ -88,6 +92,9 @@ async def upload_image(file: UploadFile = File(...)):
         logger.info(f"Saving file to: {file_path}")
         with open(file_path, "wb") as f:
             f.write(contents)
+        
+        # Set file permissions to be readable by all (644)
+        os.chmod(file_path, 0o644)
         
         logger.info(f"File saved successfully. Exists: {file_path.exists()}")
         
@@ -155,21 +162,28 @@ async def websocket_chat(websocket: WebSocket, session_id: str):
                 
                 print(f"Received chat message: {user_message}")
                 
-                # Find the image file for this session using absolute path
-                file_path = None
-                for filepath in UPLOAD_DIR.iterdir():
-                    if filepath.name.startswith(chat_session_id):
-                        file_path = filepath
-                        break
+                # Construct the expected file path directly
+                expected_file_path = UPLOAD_DIR / f"{chat_session_id}.jpg"
+                logger.info(f"Looking for image file: {expected_file_path}")
+                logger.info(f"File exists check: {expected_file_path.exists()}")
                 
-                if not file_path or not file_path.exists():
+                if not expected_file_path.exists():
                     logger.error(f"Image file not found for session: {chat_session_id}")
-                    logger.error(f"Available files in {UPLOAD_DIR}: {list(UPLOAD_DIR.iterdir())}")
+                    logger.error(f"Expected path: {expected_file_path}")
+                    logger.error(f"UPLOAD_DIR: {UPLOAD_DIR}")
+                    logger.error(f"UPLOAD_DIR exists: {UPLOAD_DIR.exists()}")
+                    logger.error(f"UPLOAD_DIR is readable: {os.access(UPLOAD_DIR, os.R_OK)}")
+                    try:
+                        logger.error(f"Available files in {UPLOAD_DIR}: {list(UPLOAD_DIR.iterdir())}")
+                    except Exception as e:
+                        logger.error(f"Cannot list directory contents: {e}")
                     await manager.send_message(session_id, {
                         "type": "error",
                         "message": "Image file not found"
                     })
                     continue
+                
+                file_path = expected_file_path
                 
                 try:
                     # Load the image
