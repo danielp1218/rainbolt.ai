@@ -585,8 +585,8 @@ intensity = pow(intensity, 1.5); // Reduced exponent for larger middle gradient
           const isVisible = vector.z < 1; // Check if marker is in front of camera
           if (isVisible) {
             waterlooLabelRef.current.style.display = 'block';
-            waterlooLabelRef.current.style.left = `${x + 40}px`; // Position to the right of marker
-            waterlooLabelRef.current.style.top = `${y - 80}px`; // Position above the marker with more offset
+            waterlooLabelRef.current.style.left = `${x + 100}px`; // Position to the right of marker
+            waterlooLabelRef.current.style.top = `${y - 150}px`; // Position above the marker with more offset
             waterlooLabelRef.current.style.transform = 'translateX(0)'; // No horizontal centering
           } else {
             waterlooLabelRef.current.style.display = 'none';
