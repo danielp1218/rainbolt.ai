@@ -2,15 +2,20 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect, File, UploadFile, H
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import os
+from pathlib import Path
 from PIL import Image
 import io
 from typing import List, Dict
 import json
 import asyncio
+import logging
 from pineconedb import query_pinecone_with_image
 from reasoning import think, estimate_coordinates
 from mapillary import get_mapillary_images
 
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 app = FastAPI()
 
@@ -42,9 +47,13 @@ class Manager:
 
 manager = Manager()
 
-# Create uploads directory if it doesn't exist
-UPLOAD_DIR = "uploads"
-os.makedirs(UPLOAD_DIR, exist_ok=True)
+# Get the directory where main.py is located and create uploads directory with absolute path
+BASE_DIR = Path(__file__).resolve().parent
+UPLOAD_DIR = BASE_DIR / "uploads"
+UPLOAD_DIR.mkdir(exist_ok=True)
+
+logger.info(f"UPLOAD_DIR set to: {UPLOAD_DIR}")
+logger.info(f"Current working directory: {os.getcwd()}")
 
 @app.get("/")
 def read_root():
@@ -71,15 +80,16 @@ async def upload_image(file: UploadFile = File(...)):
         # Generate a session ID for this upload
         import uuid
         session_id = str(uuid.uuid4())
-        
-        # Get file extension from original filename
-        file_extension = os.path.splitext(file.filename)[1] or '.jpg'
-        
+    
         # Save the file with session ID as name
         new_filename = f"{session_id}.jpg"
-        file_path = os.path.join(UPLOAD_DIR, new_filename)
+        file_path = UPLOAD_DIR / new_filename
+        
+        logger.info(f"Saving file to: {file_path}")
         with open(file_path, "wb") as f:
             f.write(contents)
+        
+        logger.info(f"File saved successfully. Exists: {file_path.exists()}")
         
         return {
             "message": "Image uploaded successfully",
@@ -89,7 +99,7 @@ async def upload_image(file: UploadFile = File(...)):
             "size": len(contents),
             "dimensions": {"width": width, "height": height},
             "format": image.format,
-            "file_path": file_path
+            "file_path": str(file_path)
         }
     
     except Exception as e:
@@ -145,15 +155,16 @@ async def websocket_chat(websocket: WebSocket, session_id: str):
                 
                 print(f"Received chat message: {user_message}")
                 
-                # Find the image file for this session
+                # Find the image file for this session using absolute path
                 file_path = None
-                uploads_dir = "uploads"
-                for filename in os.listdir(uploads_dir):
-                    if filename.startswith(chat_session_id):
-                        file_path = os.path.join(uploads_dir, filename)
+                for filepath in UPLOAD_DIR.iterdir():
+                    if filepath.name.startswith(chat_session_id):
+                        file_path = filepath
                         break
                 
-                if not file_path or not os.path.exists(file_path):
+                if not file_path or not file_path.exists():
+                    logger.error(f"Image file not found for session: {chat_session_id}")
+                    logger.error(f"Available files in {UPLOAD_DIR}: {list(UPLOAD_DIR.iterdir())}")
                     await manager.send_message(session_id, {
                         "type": "error",
                         "message": "Image file not found"
@@ -233,13 +244,15 @@ async def websocket_chat(websocket: WebSocket, session_id: str):
             
             # Check if this is an image processing request
             if message_type == "process_image":
-                file_path = f"uploads/{message_data.get('session_id')}.jpg"
-                print(f"Processing image request for: {file_path}")
-                print(f"File exists: {os.path.exists(file_path) if file_path else False}")
+                file_path = UPLOAD_DIR / f"{message_data.get('session_id')}.jpg"
+                logger.info(f"Processing image request for: {file_path}")
+                logger.info(f"File exists: {file_path.exists()}")
+                logger.info(f"UPLOAD_DIR contents: {list(UPLOAD_DIR.iterdir())}")
                 
-                if not file_path or not os.path.exists(file_path):
+                if not file_path.exists():
                     error_msg = f"Image file not found: {file_path}"
-                    print(error_msg)
+                    logger.error(error_msg)
+                    logger.error(f"Available files in {UPLOAD_DIR}: {list(UPLOAD_DIR.iterdir())}")
                     await manager.send_message(session_id, {
                         "type": "error",
                         "message": "Image file not found"
