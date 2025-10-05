@@ -22,7 +22,7 @@ interface UploadResult {
 interface UploadModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onCreateSession: (title: string) => Promise<void>;
+  onCreateSession: (title: string) => Promise<string | void>;
 }
 
 export const UploadModal: React.FC<UploadModalProps> = ({ isOpen, onClose, onCreateSession }) => {

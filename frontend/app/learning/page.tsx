@@ -491,6 +491,26 @@ export default function LearningPage() {
     console.log('Modal should now be open, new state:', true);
   };
 
+  const handleCreateSessionFromUpload = async (title: string) => {
+    try {
+      console.log('=== CREATE SESSION FROM UPLOAD ===');
+      console.log('Creating session with title:', title);
+      console.log('Firebase User ID:', firebaseUserId);
+      
+      if (!firebaseUserId) {
+        console.error('Cannot create session: No firebase user ID');
+        throw new Error('Please make sure you are logged in');
+      }
+      
+      const sessionId = await createSession(title);
+      console.log('Successfully created new session with ID:', sessionId);
+      return sessionId;
+    } catch (error) {
+      console.error('Failed to create session:', error);
+      throw error;
+    }
+  };
+
   // Example functions demonstrating session data communication
   const saveSessionChatHistory = async (sessionId: string, chatHistory: any[]) => {
     try {
@@ -1206,6 +1226,7 @@ export default function LearningPage() {
       <UploadModal 
         isOpen={showUploadModal}
         onClose={() => setShowUploadModal(false)}
+        onCreateSession={handleCreateSessionFromUpload}
       />
 
       {/* Delete Confirmation Modal */}
