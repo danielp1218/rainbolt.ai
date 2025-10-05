@@ -8,6 +8,7 @@ import {
 import LoginComponent from "./LoginComponent";
 
 
+
 interface NavbarProps {
   currentSection: number;
   variant?: 'default' | 'learning';
@@ -40,8 +41,9 @@ export function Navbar({ currentSection, variant = 'default' }: NavbarProps) {
         <div className="flex items-center justify-between">
 
           <div className="flex items-center gap-12">
-            <Link href="/" className="text-white text-2xl font-bold hover:text-white/90 transition-colors cursor-pointer">
-              rainbolt.ai
+            <Link href="/" className="flex items-center gap-3 text-white text-2xl font-bold hover:text-white/90 transition-colors cursor-pointer">
+              <img src="/rainbolt_ai_logo.png" alt="Rainbolt Logo" className="w-15 h-15 object-contain bg-transparent" />
+        <span style={{ position: "relative", top: "-0.23rem" }}>rainbolt.ai</span>
             </Link>
             <div className="fixed top-6 right-10 z-[999]">
               <LoginComponent />
@@ -50,27 +52,27 @@ export function Navbar({ currentSection, variant = 'default' }: NavbarProps) {
               <NavigationMenu>
                 <NavigationMenuList className="flex gap-8">
                   <NavigationMenuItem>
-                    <Link href="#features" className="text-white/80 hover:text-white transition-colors">
+                    <Link href="#features" className="text-white/80 hover:text-white transition-colors" style={{ position: "relative", top: "-0.2rem" }}>
                       Features
                     </Link>
                   </NavigationMenuItem>
                   <NavigationMenuItem>
-                    <Link href="#about" className="text-white/80 hover:text-white transition-colors">
+                    <Link href="#about" className="text-white/80 hover:text-white transition-colors" style={{ position: "relative", top: "-0.2rem" }}>
                       About
                     </Link>
                   </NavigationMenuItem>
                   <NavigationMenuItem>
-                    <Link href="#team" className="text-white/80 hover:text-white transition-colors">
+                    <Link href="#team" className="text-white/80 hover:text-white transition-colors" style={{ position: "relative", top: "-0.2rem" }}>
                       Team
                     </Link>
                   </NavigationMenuItem>
                   <NavigationMenuItem>
-                    <Link href="#contact" className="text-white/80 hover:text-white transition-colors">
+                    <Link href="#contact" className="text-white/80 hover:text-white transition-colors" style={{ position: "relative", top: "-0.2rem" }}>
                       Technology
                     </Link>
                   </NavigationMenuItem>
                   <NavigationMenuItem>
-                    <Link href="/learning" className="text-white/80 hover:text-white transition-colors">
+                    <Link href="/learning" className="text-white/80 hover:text-white transition-colors" style={{ position: "relative", top: "-0.2rem" }}>
                       Learning
                     </Link>
                   </NavigationMenuItem>
