@@ -90,11 +90,17 @@ async def upload_image(file: UploadFile = File(...)):
         file_path = UPLOAD_DIR / new_filename
         
         logger.info(f"Saving file to: {file_path}")
-        with open(file_path, "wb") as f:
-            f.write(contents)
         
-        # Set file permissions to be readable by all (644)
-        os.chmod(file_path, 0o644)
+        # Create file with open permissions from the start
+        # Use os.open with explicit permissions to avoid umask issues
+        fd = os.open(file_path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o666)
+        try:
+            os.write(fd, contents)
+        finally:
+            os.close(fd)
+        
+        # Ensure permissions are set correctly
+        os.chmod(file_path, 0o666)
         
         logger.info(f"File saved successfully. Exists: {file_path.exists()}")
         

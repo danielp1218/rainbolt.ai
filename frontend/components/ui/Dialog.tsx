@@ -43,17 +43,19 @@ export const Dialog: React.FC<DialogProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200"
         onClick={onClose}
+        style={{ pointerEvents: 'auto' }}
       />
 
       {/* Modal */}
       <div
-        className={`relative z-10 w-full max-w-2xl mx-4 animate-in zoom-in-95 duration-200 ${className}`}
+        className={`relative z-[10000] w-full max-w-2xl animate-in zoom-in-95 duration-200 ${className}`}
         onClick={(e) => e.stopPropagation()}
+        style={{ pointerEvents: 'auto' }}
       >
         <div className="relative backdrop-blur-md border border-white/10 rounded-xl bg-[#0a0a0f]/95 shadow-2xl overflow-hidden">
           {/* Glow effect */}

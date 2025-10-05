@@ -78,21 +78,20 @@ export const UploadModal: React.FC<UploadModalProps> = ({ isOpen, onClose, onCre
   };
 
   const handleUpload = async () => {
-    if (!title.trim()) {
-      setError('Please enter a session title');
-      return;
-    }
     if (!file) {
       setError('Please select a file first');
       return;
     }
+
+    // Use a default title if none provided
+    const sessionTitle = title.trim() || `Session ${new Date().toLocaleDateString()}`;
 
     setUploading(true);
     setError(null);
 
     try {
       // --- Call external session creation first ---
-      await onCreateSession(title.trim());
+      await onCreateSession(sessionTitle);
 
       // --- Upload file to API ---
       const formData = new FormData();
@@ -144,18 +143,25 @@ export const UploadModal: React.FC<UploadModalProps> = ({ isOpen, onClose, onCre
       title="Create New Session"
       description="Name your session and upload an image to begin"
     >
-      <div className="space-y-6 max-h-[80vh] overflow-y-auto onWheel={(e) => e.stopPropagation()}">
+      <div 
+        className="space-y-6 max-h-[70vh] overflow-y-auto pr-2" 
+        onWheel={(e) => e.stopPropagation()}
+        style={{ 
+          overscrollBehavior: 'contain',
+          WebkitOverflowScrolling: 'touch'
+        }}
+      >
         {/* Session Title Input */}
         <div>
           <label htmlFor="sessionTitle" className="block text-sm font-medium text-white/80 mb-2">
-            Session Title
+            Session Title <span className="text-white/50 text-xs">(optional)</span>
           </label>
           <input
             id="sessionTitle"
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="Enter a title for your learning session..."
+            placeholder="Enter a title for your learning session (or leave blank for default)..."
             className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             disabled={uploading}
             autoFocus
@@ -272,19 +278,28 @@ export const UploadModal: React.FC<UploadModalProps> = ({ isOpen, onClose, onCre
           <Button
             onClick={handleUpload}
             disabled={!file || uploading}
-            className="flex-1"
+            className={`flex-1 font-semibold transition-all duration-300 ${
+              !file || uploading
+                ? 'bg-gradient-to-r from-blue-500/30 to-purple-600/30 cursor-not-allowed opacity-60'
+                : 'bg-gradient-to-r from-blue-400 to-purple-500 hover:from-blue-500 hover:to-purple-600 shadow-lg shadow-blue-500/50 hover:shadow-xl hover:shadow-purple-500/50 hover:scale-[1.02] active:scale-[0.98]'
+            } text-white`}
             size="lg"
           >
             {uploading ? (
               <>
-                <svg className="animate-spin -ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <svg className="animate-spin -ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                 </svg>
                 Uploading...
               </>
             ) : (
-              'Upload & Start Session'
+              <>
+                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                </svg>
+                Upload & Start Session
+              </>
             )}
           </Button>
           
@@ -292,6 +307,8 @@ export const UploadModal: React.FC<UploadModalProps> = ({ isOpen, onClose, onCre
             variant="outline" 
             size="lg"
             onClick={handleClose}
+            disabled={uploading}
+            className="border-white/20 text-white hover:bg-white/10 hover:border-white/30 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Cancel
           </Button>
