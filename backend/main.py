@@ -120,22 +120,9 @@ async def get_mapillary_images_endpoint(request: MapillaryRequest):
             "images": images,
             "count": len(images)
         }
-    except ValueError as e:
-        # API key not set - return empty list instead of error
-        print(f"Mapillary API key not configured: {e}")
-        return {
-            "success": True,
-            "images": [],
-            "count": 0
-        }
     except Exception as e:
         print(f"Error fetching Mapillary images: {e}")
-        # Return empty list instead of raising error
-        return {
-            "success": True,
-            "images": [],
-            "count": 0
-        }
+        raise HTTPException(status_code=500, detail=f"Error fetching Mapillary images: {str(e)}")
 
 
 @app.websocket("/ws/chat/{session_id}")
@@ -214,7 +201,7 @@ async def websocket_chat(websocket: WebSocket, session_id: str):
                         response = response.replace("__output__coordinates__", "")
                         await manager.send_message(session_id, {
                             "type": "chat_response_coordinates", 
-                            "text": "Recalculating coordinates..."
+                            "text": "Rex`   calculating coordinates..."
                         })
                         
                         # Recalculate coordinates

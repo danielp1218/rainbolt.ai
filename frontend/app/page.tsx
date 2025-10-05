@@ -291,8 +291,63 @@ export default function Home() {
 
       {/* Contact Section */}
       <section id="contact" data-section-id="4" className="relative h-screen snap-start">
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-6">
-          <h2 className={`text-5xl font-bold text-white [text-shadow:0_0_10px_#fff,0_0_20px_#0066cc,0_0_30px_#0099ff] [animation:textGlowBlue_3s_ease-in-out_infinite_alternate] ${currentSection === 4 ? 'animate-slide-in' : 'opacity-0'}`}>
+        {/* Star Constellations Background */}
+        <div className="absolute inset-0 z-0 pointer-events-none">
+          <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
+            {/* Constellation 1 - Top Left */}
+            <g opacity="0.6">
+              <line x1="10%" y1="15%" x2="15%" y2="20%" stroke="rgba(255,255,255,0.3)" strokeWidth="1" />
+              <line x1="15%" y1="20%" x2="12%" y2="25%" stroke="rgba(255,255,255,0.3)" strokeWidth="1" />
+              <line x1="12%" y1="25%" x2="18%" y2="28%" stroke="rgba(255,255,255,0.3)" strokeWidth="1" />
+              <circle cx="10%" cy="15%" r="2" fill="white" opacity="0.8" />
+              <circle cx="15%" cy="20%" r="2.5" fill="white" opacity="0.9" />
+              <circle cx="12%" cy="25%" r="2" fill="white" opacity="0.7" />
+              <circle cx="18%" cy="28%" r="2" fill="white" opacity="0.8" />
+            </g>
+
+            {/* Constellation 2 - Top Right */}
+            <g opacity="0.6">
+              <line x1="85%" y1="12%" x2="88%" y2="18%" stroke="rgba(255,255,255,0.3)" strokeWidth="1" />
+              <line x1="88%" y1="18%" x2="92%" y2="15%" stroke="rgba(255,255,255,0.3)" strokeWidth="1" />
+              <line x1="88%" y1="18%" x2="90%" y2="23%" stroke="rgba(255,255,255,0.3)" strokeWidth="1" />
+              <circle cx="85%" cy="12%" r="2" fill="white" opacity="0.8" />
+              <circle cx="88%" cy="18%" r="2.5" fill="white" opacity="0.9" />
+              <circle cx="92%" cy="15%" r="2" fill="white" opacity="0.7" />
+              <circle cx="90%" cy="23%" r="2" fill="white" opacity="0.8" />
+            </g>
+
+            {/* Constellation 3 - Bottom Left */}
+            <g opacity="0.6">
+              <line x1="8%" y1="75%" x2="13%" y2="78%" stroke="rgba(255,255,255,0.3)" strokeWidth="1" />
+              <line x1="13%" y1="78%" x2="16%" y2="82%" stroke="rgba(255,255,255,0.3)" strokeWidth="1" />
+              <line x1="16%" y1="82%" x2="12%" y2="85%" stroke="rgba(255,255,255,0.3)" strokeWidth="1" />
+              <circle cx="8%" cy="75%" r="2" fill="white" opacity="0.8" />
+              <circle cx="13%" cy="78%" r="2.5" fill="white" opacity="0.9" />
+              <circle cx="16%" cy="82%" r="2" fill="white" opacity="0.7" />
+              <circle cx="12%" cy="85%" r="2" fill="white" opacity="0.8" />
+            </g>
+
+            {/* Constellation 4 - Bottom Right */}
+            <g opacity="0.6">
+              <line x1="88%" y1="80%" x2="92%" y2="77%" stroke="rgba(255,255,255,0.3)" strokeWidth="1" />
+              <line x1="92%" y1="77%" x2="90%" y2="72%" stroke="rgba(255,255,255,0.3)" strokeWidth="1" />
+              <line x1="88%" y1="80%" x2="85%" y2="83%" stroke="rgba(255,255,255,0.3)" strokeWidth="1" />
+              <circle cx="88%" cy="80%" r="2" fill="white" opacity="0.8" />
+              <circle cx="92%" cy="77%" r="2.5" fill="white" opacity="0.9" />
+              <circle cx="90%" cy="72%" r="2" fill="white" opacity="0.7" />
+              <circle cx="85%" cy="83%" r="2" fill="white" opacity="0.8" />
+            </g>
+
+            {/* Small accent stars */}
+            <circle cx="25%" cy="30%" r="1.5" fill="white" opacity="0.5" />
+            <circle cx="70%" cy="40%" r="1.5" fill="white" opacity="0.6" />
+            <circle cx="30%" cy="65%" r="1.5" fill="white" opacity="0.5" />
+            <circle cx="75%" cy="55%" r="1.5" fill="white" opacity="0.6" />
+          </svg>
+        </div>
+
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-6 z-10">
+          <h2 className={`text-5xl font-bold text-white [text-shadow:0_0_5px_rgba(255,255,255,0.3)] ${currentSection === 4 ? 'animate-slide-in' : 'opacity-0'}`}>
             Tech Stack
           </h2>
           <div className={`max-w-7xl w-full px-4 ${currentSection === 4 ? 'animate-slide-in' : 'opacity-0'}`}>
