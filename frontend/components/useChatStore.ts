@@ -13,6 +13,7 @@ export type Marker = {
     longitude: number;
     accuracy: number;
     facts: string;
+    name: string;
     mapillary_images?: string[];
 };
 
@@ -368,7 +369,8 @@ export const useChatStore = create<ChatState>()(
                                     latitude: coord.latitude,
                                     longitude: coord.longitude,
                                     accuracy: coord.accuracy / 100, // Convert percentage to decimal
-                                    facts: Array.isArray(coord.facts) ? coord.facts.join('. ') : coord.facts
+                                    facts: Array.isArray(coord.facts) ? coord.facts.join('. ') : coord.facts,
+                                    name: coord.name || 'Unknown Location',
                                 }));
                                 
                                 console.log('Setting markers from coordinates:', newMarkers);

@@ -52,18 +52,19 @@ export default function LoginComponent() {
             </DropdownMenu.Trigger>
 
             <DropdownMenu.Content className="min-w-[200px]">
-
-                <DropdownMenu.Item asChild>
-                    <a href="/auth/login" className="cursor-pointer">
-                        Log In
-                    </a>
-                </DropdownMenu.Item>
-                <DropdownMenu.Separator />
-                <DropdownMenu.Item asChild>
-                    <a href="/auth/logout" className="cursor-pointer text-red-500">
-                        Log Out
-                    </a>
-                </DropdownMenu.Item>
+                {user ? (
+                    <DropdownMenu.Item asChild>
+                        <a href="/auth/logout" className="cursor-pointer text-red-500">
+                            Log Out
+                        </a>
+                    </DropdownMenu.Item>
+                ) : (
+                    <DropdownMenu.Item asChild>
+                        <a href="/auth/login" className="cursor-pointer">
+                            Log In
+                        </a>
+                    </DropdownMenu.Item>
+                )}
             </DropdownMenu.Content>
         </DropdownMenu.Root>
     );

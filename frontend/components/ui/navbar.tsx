@@ -1,15 +1,11 @@
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
 import {
   NavigationMenu,
-  NavigationMenuContent,
   NavigationMenuItem,
-  NavigationMenuLink,
   NavigationMenuList,
-  NavigationMenuTrigger,
-} from "@/components/ui/navigation-menu";
-import LoginComponent from "./Login_component";
+} from "@/components/ui/NavigationMenu";
+import LoginComponent from "./LoginComponent";
 
 
 interface NavbarProps {

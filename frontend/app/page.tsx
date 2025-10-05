@@ -1,12 +1,12 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { Navbar } from "@/components/ui/navbar";
-import { Button } from "@/components/ui/button";
-import EarthScene from "@/components/ui/globe";
+import { Navbar } from "@/components/ui/Navbar";
+import { Button } from "@/components/ui/Button";
+import EarthScene from "@/components/ui/Globe";
 
 import "./glow.css";
-import LoginComponent from "@/components/ui/Login_component";
+import LoginComponent from "@/components/ui/LoginComponent";
 
 export default function Home() {
   const [currentSection, setCurrentSection] = useState(0);
