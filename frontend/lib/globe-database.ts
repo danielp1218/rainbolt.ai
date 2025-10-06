@@ -319,10 +319,13 @@ export const addGlobeImage = async (
     const newImage = {
       id: `img_${Date.now()}`,
       ...imageData,
-      timestamp: serverTimestamp()
+      timestamp: new Date().toISOString() // Use ISO string instead of serverTimestamp()
     };
 
-    const updatedImages = [...sessionData.data.globeImages, newImage];
+    const currentImages = Array.isArray(sessionData.data?.globeImages)
+      ? sessionData.data.globeImages
+      : [];
+    const updatedImages = [...currentImages, newImage];
 
     await updateDoc(docRef, {
       'data.globeImages': updatedImages,
@@ -357,10 +360,13 @@ export const addChatMessage = async (
     const newMessage = {
       id: `chat_${Date.now()}`,
       ...message,
-      timestamp: serverTimestamp()
+      timestamp: new Date().toISOString() // Use ISO string instead of serverTimestamp()
     };
 
-    const updatedChatHistory = [...sessionData.data.chatHistory, newMessage];
+    const currentChatHistory = Array.isArray(sessionData.data?.chatHistory)
+      ? sessionData.data.chatHistory
+      : [];
+    const updatedChatHistory = [...currentChatHistory, newMessage];
 
     await updateDoc(docRef, {
       'data.chatHistory': updatedChatHistory,
