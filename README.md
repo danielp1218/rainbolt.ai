@@ -2,7 +2,8 @@
 ** Bolt across the world with AI-powered geolocation  
 ** Hack the Valley X Winner - Best UI Hack  
 
-![Hackathon Winner Badge](https://img.shields.io/badge/Hackathon-Winner%20Best%20UI%20Hack-brightgreen)  ![License Badge](https://img.shields.io/badge/License-Proprietary-blue)  
+![Hackathon Winner Badge](https://img.shields.io/badge/Hackathon-Winner%20Best%20UI%20Hack-brightgreen)  
+![License Badge](https://img.shields.io/badge/License-Proprietary-blue)  
 
 
 ![Landing Page](images/landing.png)  
@@ -149,7 +150,6 @@ Team
 Links  
 -----
 
-- GitHub Repository: https://github.com/rainbolt-ai  
 - Devpost Submission: https://devpost.com/software/rainbolt-ai  
 
 ---
