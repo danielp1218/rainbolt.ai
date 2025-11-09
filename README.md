@@ -1,10 +1,12 @@
-rainbolt.ai  
+#rainbolt.ai  
 Bolt across the world with AI-powered geolocation  
 Hack the Valley X Winner - Best UI Hack  
 
 ![Hackathon Winner Badge](https://img.shields.io/badge/Hackathon-Winner%20Best%20UI%20Hack-brightgreen)  
 ![License Badge](https://img.shields.io/badge/License-Proprietary-blue)  
 
+
+![Landing Page](images/landing.png)  
 ---
 
 Overview  
@@ -18,7 +20,6 @@ rainbolt.ai combines AI, reasoning models, and geographic data to pinpoint coord
 
 This project is inspired by Trevor Rainbolt, the world’s most famous geoguesser.
 
-![Landing Page](images/landing.png)  
 ![About](images/about.png)
 
 ---
