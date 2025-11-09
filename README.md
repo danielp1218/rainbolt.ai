@@ -90,8 +90,6 @@ How It Works
 4. Verification – Mapillary street views validate and refine predictions.  
 5. Presentation – Frontend displays cultural insights and dynamic visualizations.  
 
-(Add an image here, e.g., docs/images/pipeline.png)
-
 ---
 
 Data Sources  
@@ -145,13 +143,6 @@ Team
 | Justin Wang |
 
 ![Team](images/team.png)
-
----
-
-Project Structure  
------------------
-
-
 
 ---
 
