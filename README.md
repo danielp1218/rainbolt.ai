@@ -1,89 +1,170 @@
-# 🌍 Rainbolt.AI
+rainbolt.ai  
+Bolt across the world with AI-powered geolocation  
+Hack the Valley X Winner - Best UI Hack  
 
-An AI-powered geolocation platform that leverages advanced machine learning models to identify locations from images with high accuracy. Built with a modern tech stack combining computer vision, vector search, and real-time processing.
+![Hackathon Winner Badge](https://img.shields.io/badge/Hackathon-Winner%20Best%20UI%20Hack-brightgreen)  
+![License Badge](https://img.shields.io/badge/License-Proprietary-blue)  
 
-## 🚀 Overview
+---
 
-Rainbolt.AI combines state-of-the-art computer vision, geospatial analysis, and deep learning to provide accurate location predictions from visual data. The platform is designed for scalability, reliability, and real-time processing.
+Overview  
+--------
 
-# 🔧 Tech Stack
+Ever see a photo and think, "This place looks incredible. Where is that?"  
+Traditional reverse image search tools rarely work well for geolocation.  
+That’s why we built rainbolt.ai: an AI-powered platform that teaches you how to identify real-world locations from any image, providing context, culture, and insight.
 
-### Backend Infrastructure
+rainbolt.ai combines AI, reasoning models, and geographic data to pinpoint coordinates, display nearby street views, and explain its thought process — analyzing road signs, vegetation, architecture, and more.
 
-#### Core API & Processing
-- **FastAPI** - High-performance Python backend for handling API requests
-  - Async request handling
-  - Automatic API documentation
-  - Type validation with Pydantic
+This project is inspired by Trevor Rainbolt, the world’s most famous geoguesser.
 
-#### AI & Machine Learning
-- **Gemini API** - Powers intelligent analysis and content generation
-  - Natural language processing
-  - Multi-modal understanding
-  - Contextual reasoning
-  
-- **OpenAI CLIP** - Processes 900k+ image and feature dataset
-  - Multi-modal image-text understanding
-  - Feature extraction and embedding generation
-  - Cross-modal similarity search
+![Landing Page](images/landing.png)  
+![About](images/about.png)
 
-- **LangChain** - Orchestrates the AI pipeline
-  - Manages data flow between components
-  - Prompt engineering and templates
-  - Chain-of-thought reasoning
+---
 
-#### Data & Storage
-- **Pinecone** - Vector database for efficient embedding storage
-  - Similarity search at scale
-  - Fast nearest neighbor queries
-  - Handles 900k+ image embeddings
-  
-- **Mapillary** - Street-level imagery queries
-  - Real-world visual context
-  - Crowdsourced street imagery
-  - Geographic metadata enrichment
+Example  
+-------
 
-- **Firebase** - Real-time database and cloud storage
-  - User data persistence
-  - Session management
-  - Image storage
+![ex1](images/ex1.png)
+![ex2](images/ex2.png)
+![canvas](images/canvas.png)
 
-#### Authentication
-- **Auth0** - Secure authentication and user management
-  - OAuth 2.0 / OpenID Connect
-  - Social login integration
-  - JWT token management
 
-### Frontend
+---
 
-#### Core Framework
-- **Next.js 14** - React framework with App Router
-  - Server-side rendering (SSR)
-  - Static site generation (SSG)
-  - API routes
-  - File-based routing
+Features  
+--------
 
-#### Styling & UI
-- **Tailwind CSS** - Utility-first CSS framework
-  - Responsive design
-  - Custom animations
-  - Theme customization
+Core Capabilities  
+- Image Geolocation: Upload any photo to get precise coordinates.  
+- AI Reasoning: Watch the system explain how it identified features.  
+- Street View Integration: Explore nearby Mapillary street views.  
+- Interactive Chat: Refine or regenerate predictions interactively.  
+- Cultural Insights: Learn about landmarks, culture, and geography.  
 
-- **Three.js / React Three Fiber** - 3D graphics
-  - Interactive globe visualization
-  - Particle systems
-  - Camera controls
+Technical Features  
+- Real-time Streaming using WebSockets for live reasoning updates.  
+- Multi-modal Analysis combining visual, textual, and spatial data.  
+- Confidence Scoring with transparent accuracy metrics.  
+- Dynamic Visualization via interactive globe and constellation views.
 
-#### State Management
-- **Zustand** - Lightweight state management
-  - Minimal boilerplate
-  - TypeScript support
-  - DevTools integration
+![Features](images/features.png)
 
-### Deployment & Infrastructure
-- **Google Cloud Platform** - Cloud infrastructure
-  - Compute Engine for backend hosting
-  - Cloud Storage for assets
-  - Cloud CDN for content delivery
-  - Auto-scaling capabilities
+---
+
+Architecture  
+------------
+
+rainbolt.ai connects multiple systems into a single retrieval-augmented pipeline:
+
+User Image → CLIP Encoding → Pinecone Vector Search → Gemini Reasoning → Mapillary Verification → Cultural Context  
+
+(Add a system diagram here, e.g., docs/images/system-diagram.png)
+
+
+---
+
+Tech Stack  
+-----------
+
+| Category | Technologies |
+|-----------|---------------|
+| AI & ML | Gemini API, OpenAI CLIP, LangChain, Pillow |
+| Backend | FastAPI, Python, WebSockets |
+| Frontend | Next.js, React, TypeScript, Tailwind CSS |
+| Database | Pinecone (Vector DB), Firebase (Realtime) |
+| Infrastructure | Google Cloud, Auth0, Mapillary API |
+| State Management | Zustand, Radix UI |
+
+![Tech Stack](images/techstack.png)
+
+---
+
+How It Works  
+------------
+
+1. Image Processing – CLIP encodes visual features into vector embeddings.  
+2. Vector Search – Pinecone retrieves similar geographic embeddings.  
+3. AI Reasoning – Gemini analyzes matches and approximates coordinates.  
+4. Verification – Mapillary street views validate and refine predictions.  
+5. Presentation – Frontend displays cultural insights and dynamic visualizations.  
+
+(Add an image here, e.g., docs/images/pipeline.png)
+
+---
+
+Data Sources  
+------------
+
+- YFCC100M dataset for embeddings  
+- Geoguessr community guides for geographic hints  
+- Mapillary API for street-level imagery  
+- Global geographic and cultural datasets for context  
+
+---
+
+Hackathon Achievements  
+----------------------
+
+- Hack the Valley X (2025)  
+- Winner: Best UI Hack (Sponsored by Conrad Mo)  
+- Built in 36 hours by a 4-person team
+
+---
+
+Challenges Overcome  
+-------------------
+
+- Integrated Three.js for smooth globe animation and camera rotation.  
+- Deployed the complete AI pipeline on Google Cloud.  
+- Implemented real-time street-level vision via Mapillary API.  
+- Tuned Gemini reasoning prompts for consistent accuracy.
+
+---
+
+Future Roadmap  
+--------------
+
+- Video Analysis: Extend CLIP to analyze video frames sequentially.  
+- Real-time Tracking: Monitor geographic changes over time.  
+- 3D Spatial Mapping: Generate depth maps and 3D reconstructions.  
+- Cultural Enrichment: Add deeper historical and sociological insights.  
+- Mobile App: Native app experience for on-the-go geolocation.
+
+---
+
+Team  
+----
+
+| Member |
+|---------|
+| Daniel Pu |
+| Daniel Liu |
+| Evan |
+| Justin Wang |
+
+![Team](images/team.png)
+
+---
+
+Project Structure  
+-----------------
+
+
+
+---
+
+Links  
+-----
+
+- GitHub Repository: https://github.com/rainbolt-ai  
+- Devpost Submission: https://devpost.com/software/rainbolt-ai  
+
+---
+
+License  
+-------
+
+Proprietary. Built for Hack the Valley X 2025.
 
